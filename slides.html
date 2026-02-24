@@ -897,6 +897,13 @@ h2.on-light { color: var(--barn); }
   z-index: 1;
 }
 
+/* ─── HIDE NAV IN FULLSCREEN ─── */
+:fullscreen .nav,
+:-webkit-full-screen .nav,
+:-moz-full-screen .nav {
+  display: none;
+}
+
 /* ─── PROGRESS BAR ─── */
 .progress-bar {
   position: fixed;
