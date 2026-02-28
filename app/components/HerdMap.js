@@ -25,7 +25,7 @@ const HerdMap = () => {
                 const nodes = data.cows.map(c => ({
                     id: `Cow ${c.id}`,
                     cowId: c.id,
-                    group: Math.floor(c.id / 10) + 1,
+                    group: Math.min(Math.floor(c.id / 10) + 1, PEN_LABELS.length),
                     risk: statusToRisk(c.status),
                     pen: derivePen(c.id),
                     riskScore: c.risk_score,
