@@ -1,0 +1,17 @@
+{
+  "name": "Tauron — Herd Intelligence",
+  "short_name": "Tauron",
+  "description": "GNN early-warning system for dairy herd disease detection",
+  "start_url": "/",
+  "display": "browser",
+  "theme_color": "#2C1A0E",
+  "background_color": "#F2EDE4",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
