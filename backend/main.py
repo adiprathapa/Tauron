@@ -426,6 +426,63 @@ async def set_prediction_outcome(prediction_id: int, body: OutcomePayload):
 
 
 # ---------------------------------------------------------------------------
+# Impact metrics — single endpoint consumed by the Sustainability Impact screen.
+# Computes all 4 metric cards from live herd state + prediction history.
+# ---------------------------------------------------------------------------
+
+@app.get("/api/impact")
+async def get_impact():
+    """
+    Returns the 4 sustainability metric card values for the Impact screen.
+
+    Metrics:
+    - antibiotic_doses_avoided : alert_count*2 + watch_count*1
+    - milk_yield_saved_usd     : alert_count*280 + watch_count*85 (7-day projection)
+    - avg_lead_time_hours      : mean((risk-0.70)/0.30*48) over alert cows; null if none
+    - alerts_confirmed_pct     : % of farmer-confirmed outcomes; null if no outcomes yet
+
+    In mock mode returns static representative values so the UI is always populated.
+    """
+    if USE_MOCK:
+        return {
+            "antibiotic_doses_avoided": 5,
+            "milk_yield_saved_usd":     645,
+            "avg_lead_time_hours":      22,
+            "alerts_confirmed_pct":     None,  # no history in mock mode
+        }
+
+    # Use cached herd result; fall back to MOCK_HERD before first ingest
+    herd = _herd_result or MOCK_HERD
+    cows = herd.get("cows", [])
+
+    alert_cows = [c for c in cows if c.get("status") == "alert"]
+    watch_cows = [c for c in cows if c.get("status") == "watch"]
+    alert_count = len(alert_cows)
+    watch_count  = len(watch_cows)
+
+    doses   = alert_count * 2 + watch_count
+    savings = alert_count * 280 + watch_count * 85
+
+    if alert_count > 0:
+        lead_time = round(
+            sum((c["risk_score"] - 0.70) / 0.30 * 48 for c in alert_cows) / alert_count
+        )
+    else:
+        lead_time = None
+
+    with_outcome = [p for p in _prediction_log if p.get("outcome") is not None]
+    confirmed    = sum(1 for p in with_outcome if p["outcome"] == "confirmed")
+    accuracy_pct = round(confirmed / len(with_outcome) * 100) if with_outcome else None
+
+    return {
+        "antibiotic_doses_avoided": doses,
+        "milk_yield_saved_usd":     savings,
+        "avg_lead_time_hours":      lead_time,
+        "alerts_confirmed_pct":     accuracy_pct,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Data tier tiers — tracks data richness and drives the upgrade nudge on the
 # Impact screen. Tier 1 = manual records only (demo default). Tier 2 would
 # require an automated milking system integration (future work).

@@ -178,3 +178,40 @@ class TestExplainEndpoint:
             assert r.status_code == 200, (
                 f"Cow {cow['id']} in /herd but missing from /explain"
             )
+
+
+class TestImpactEndpoint:
+    REQUIRED_KEYS = {
+        "antibiotic_doses_avoided",
+        "milk_yield_saved_usd",
+        "avg_lead_time_hours",
+        "alerts_confirmed_pct",
+    }
+
+    def test_returns_200(self):
+        r = client.get("/api/impact")
+        assert r.status_code == 200
+
+    def test_has_all_required_keys(self):
+        body = client.get("/api/impact").json()
+        for key in self.REQUIRED_KEYS:
+            assert key in body, f"Missing key: {key}"
+
+    def test_numeric_fields_are_non_negative_or_null(self):
+        body = client.get("/api/impact").json()
+        for key in ("antibiotic_doses_avoided", "milk_yield_saved_usd", "avg_lead_time_hours"):
+            val = body[key]
+            if val is not None:
+                assert val >= 0, f"{key} should be non-negative, got {val}"
+
+    def test_alerts_confirmed_pct_is_pct_or_null(self):
+        val = client.get("/api/impact").json()["alerts_confirmed_pct"]
+        if val is not None:
+            assert 0 <= val <= 100, f"alerts_confirmed_pct out of [0,100]: {val}"
+
+    def test_mock_values_are_representative(self):
+        """In mock mode the metrics should be non-zero so the UI is populated."""
+        body = client.get("/api/impact").json()
+        assert body["antibiotic_doses_avoided"] > 0
+        assert body["milk_yield_saved_usd"] > 0
+        assert body["avg_lead_time_hours"] > 0
