@@ -6,28 +6,26 @@ FastAPI backend for Tauron.
 Endpoints:
     GET  /herd              — all cow risk scores + graph edges
     GET  /alert/{cow_id}    — GNNExplainer JSON for one cow
-    GET  /explain/{cow_id}  — Claude API plain-English alert
+    GET  /explain/{cow_id}  — plain-English alert via llm_engine (Ollama → Claude → template)
     POST /api/ingest        — CSV upload
 
 Usage:
     source venv/bin/activate
-    export ANTHROPIC_API_KEY=sk-...
     uvicorn api:app --reload
 """
 
 import io
 import json
-import os
 from typing import Optional
 
 import numpy as np
 import pandas as pd
-import anthropic
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import tauron_pipeline as tp
+from backend.llm_engine import generate_alert
 
 
 def _sanitize(obj):
@@ -108,23 +106,47 @@ def alert(cow_id: int):
 
 
 @app.get("/explain/{cow_id}")
-def explain(cow_id: int):
-    """Call Claude API to convert XAI output → plain-English farmer alert."""
+async def explain(cow_id: int):
+    """
+    Plain-English farmer alert via llm_engine 3-tier fallback:
+    Ollama (local) → Claude API (if ANTHROPIC_API_KEY set) → template.
+    Works with zero API keys configured.
+    """
     if _graph is None:
         raise HTTPException(503, "model not loaded")
     if cow_id not in _graph.cow_ids:
         raise HTTPException(404, f"cow {cow_id} not found")
 
-    xai    = _sanitize(tp.explain_cow(_graph, _graph.cow_ids.index(cow_id)))
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    msg    = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=120,
-        messages=[{"role": "user", "content":
-            f"You are a dairy herd advisor. Write one plain-English action sentence "
-            f"a farmer can act on immediately based on this model output: {json.dumps(xai)}"}],
-    )
-    return JSONResponse({"cow_id": f"#{cow_id}", "alert": msg.content[0].text, "xai": xai})
+    xai = _sanitize(tp.explain_cow(_graph, _graph.cow_ids.index(cow_id)))
+
+    # Map tauron_pipeline.explain_cow() output → llm_engine.generate_alert() input
+    all_risks = xai.get("all_risks", {})
+    risk_score = xai.get("risk", 0.0)
+    dominant_disease = xai.get("dominant_disease")
+
+    top_feature = xai.get("top_feature", "unknown")
+    feature_delta = 0.0  # tauron_pipeline doesn't provide delta; llm_engine handles this
+
+    # Convert top_edge format: {neighbour_cow, edge_weight} → {from, to, weight}
+    raw_edge = xai.get("top_edge") or {}
+    top_edge = {
+        "from":   cow_id,
+        "to":     raw_edge.get("neighbour_cow", cow_id),
+        "weight": raw_edge.get("edge_weight", 0.0),
+    }
+
+    xai_json = {
+        "cow_id":           cow_id,
+        "risk_score":       risk_score,
+        "top_feature":      top_feature,
+        "feature_delta":    feature_delta,
+        "top_edge":         top_edge,
+        "dominant_disease": dominant_disease,
+        "all_risks":        all_risks or None,
+    }
+
+    alert_text = await generate_alert(xai_json)
+    return JSONResponse({"cow_id": f"#{cow_id}", "alert": alert_text, "xai": xai})
 
 
 @app.post("/api/ingest")
