@@ -1,9 +1,14 @@
 # Tauron Backend — XAI + LLM dependencies
-# Install: pip install -r backend/requirements.txt
 #
-# LLM: Ollama is used (not llama-cpp-python) — install separately:
-#   brew install ollama && ollama pull mistral
-# See claude.md for rationale.
+# FIRST-TIME SETUP (recommended):
+#   chmod +x setup.sh && ./setup.sh
+#   → installs these pip packages + Ollama + Mistral-7B in one step
+#
+# Python-only install (if Ollama is already installed):
+#   pip install -r backend/requirements.txt
+#
+# Note: Ollama is a system binary (not a pip package).
+#   Install manually: brew install ollama && ollama pull mistral
 
 # Core API
 fastapi==0.109.0
