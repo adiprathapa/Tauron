@@ -314,6 +314,113 @@ def build_dataset(farm_df: pd.DataFrame, n_runs: int = 7,
     return dataset
 
 
+def build_external_dataset(ext_df: pd.DataFrame,
+                           window: int = WINDOW_DAYS) -> List[Data]:
+    """
+    Build labelled graph snapshots from pre-adapted external data.
+
+    Unlike build_dataset(), the external data already has labels and
+    symptom-derived features baked in — no random injection needed.
+    Each external "cow" has a 7-day window of data. We group by cow,
+    build per-cow single-node graphs with pen/bunk edges to same-pen cows
+    in the same date batch.
+    """
+    label_cols = ["label_mastitis", "label_brd", "label_lameness"]
+
+    # Group cows that can form a graph together (same pen, overlapping dates)
+    cow_ids = sorted(ext_df["cow_id"].unique())
+    n_cows = len(cow_ids)
+    print(f"Building external dataset from {n_cows} adapted cows…")
+
+    # Batch cows into pseudo-herds of ~10 for graph structure
+    HERD_SIZE = 10
+    dataset = []
+    rng = np.random.default_rng(99)
+
+    for batch_start in range(0, n_cows, HERD_SIZE):
+        batch_cows = cow_ids[batch_start : batch_start + HERD_SIZE]
+        batch_df = ext_df[ext_df["cow_id"].isin(batch_cows)].copy()
+
+        if len(batch_cows) < 2:
+            continue
+
+        # Align dates: each cow has 7 days, remap to shared dates
+        cow_to_idx = {c: i for i, c in enumerate(batch_cows)}
+        N = len(batch_cows)
+
+        # Build feature tensor [N, window, F]
+        x_seq = np.zeros((N, window, N_FEATURES), dtype=np.float32)
+        labels = np.zeros((N, 3), dtype=np.float32)
+
+        for cow in batch_cows:
+            idx = cow_to_idx[cow]
+            cow_data = batch_df[batch_df["cow_id"] == cow].sort_values("date")
+            if len(cow_data) == 0:
+                continue
+
+            # Take up to `window` days
+            cow_data = cow_data.tail(window)
+            for t, (_, row) in enumerate(cow_data.iterrows()):
+                for f_idx, feat in enumerate(SENSOR_FEATURES):
+                    if feat in row.index:
+                        x_seq[idx, t, f_idx] = row[feat]
+
+            # Labels from first row (same across all days for this cow)
+            first = cow_data.iloc[0]
+            for li, lc in enumerate(label_cols):
+                if lc in first.index:
+                    labels[idx, li] = first[lc]
+
+        # Z-normalise per feature
+        for f in range(N_FEATURES):
+            v = x_seq[:, :, f]
+            std = v.std()
+            if std > 1e-8:
+                x_seq[:, :, f] = (v - v.mean()) / std
+
+        # Build edges: pen cliques + random bunk edges
+        pen_groups: Dict[int, List[int]] = {}
+        last_rows = batch_df.groupby("cow_id").last()
+        for cow in batch_cows:
+            idx = cow_to_idx[cow]
+            if cow in last_rows.index and "pen_id" in last_rows.columns:
+                pid = int(last_rows.loc[cow, "pen_id"])
+                pen_groups.setdefault(pid, []).append(idx)
+
+        src, dst, weights = [], [], []
+        for members in pen_groups.values():
+            for i in members:
+                for j in members:
+                    if i != j:
+                        src.append(i); dst.append(j)
+                        weights.append(1.0)
+
+        # Add a few random bunk edges
+        for _ in range(N):
+            a, b = int(rng.integers(0, N)), int(rng.integers(0, N))
+            if a != b:
+                src.extend([a, b]); dst.extend([b, a])
+                weights.extend([0.5, 0.5])
+
+        if src:
+            edge_index = torch.tensor([src, dst], dtype=torch.long)
+            edge_attr = torch.tensor(weights, dtype=torch.float).unsqueeze(1)
+        else:
+            edge_index = torch.zeros((2, 0), dtype=torch.long)
+            edge_attr = torch.zeros((0, 1), dtype=torch.float)
+
+        data = Data(edge_index=edge_index, edge_attr=edge_attr)
+        data.x_seq = torch.tensor(x_seq, dtype=torch.float)
+        data.y = torch.tensor(labels, dtype=torch.float)
+        data.num_nodes = N
+        data.cow_ids = list(batch_cows)
+        data.date = str(batch_df["date"].max().date()) if len(batch_df) > 0 else ""
+        dataset.append(data)
+
+    print(f"External dataset: {len(dataset)} graphs from {n_cows} cows")
+    return dataset
+
+
 # ── Model ──────────────────────────────────────────────────────────────────
 class TauronGNN(nn.Module):
     """
