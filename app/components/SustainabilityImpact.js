@@ -8,63 +8,74 @@ const SustainabilityImpact = () => {
         if (window.lucide) window.lucide.createIcons();
     });
 
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [metrics, setMetrics] = useState([
-        { title: 'Antibiotics Avoided', value: '—', icon: 'shield-plus',    color: 'var(--sage)' },
-        { title: 'Milk Yield Saved',    value: '—', icon: 'trending-up',     color: 'var(--straw)' },
-        { title: 'Avg Lead Time',       value: '41 Hours', icon: 'clock',    color: 'var(--ink)' },
-        { title: 'Accuracy Confirm',    value: '94.2%', icon: 'check-circle-2', color: 'var(--sage)' },
+        { title: 'Antibiotics Avoided', value: '—', icon: 'shield-plus', color: 'var(--sage)' },
+        { title: 'Milk Yield Saved', value: '—', icon: 'trending-up', color: 'var(--straw)' },
+        { title: 'Avg Lead Time', value: '41 Hours', icon: 'clock', color: 'var(--ink)' },
+        { title: 'Accuracy Confirm', value: '94.2%', icon: 'check-circle-2', color: 'var(--sage)' },
     ]);
 
     useEffect(() => {
         fetch(`${API}/herd`)
-            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
             .then(data => {
                 const alertCount = data.cows.filter(c => c.status === 'alert').length;
                 const watchCount = data.cows.filter(c => c.status === 'watch').length;
                 // Industry estimate: early detection saves ~2 antibiotic courses per alert cow,
                 // ~1 per watch cow; milk savings ~$280/alert cow, $85/watch cow (7-day projection)
-                const doses  = alertCount * 2 + watchCount * 1;
+                const doses = alertCount * 2 + watchCount * 1;
                 const saving = alertCount * 280 + watchCount * 85;
                 setMetrics([
-                    { title: 'Antibiotics Avoided', value: `${doses} Doses`,          icon: 'shield-plus',    color: 'var(--sage)' },
-                    { title: 'Milk Yield Saved',    value: `$${saving.toLocaleString()}`, icon: 'trending-up', color: 'var(--straw)' },
-                    { title: 'Avg Lead Time',       value: '41 Hours',                icon: 'clock',          color: 'var(--ink)' },
-                    { title: 'Accuracy Confirm',    value: '94.2%',                   icon: 'check-circle-2', color: 'var(--sage)' },
+                    { title: 'Antibiotics Avoided', value: `${doses} Doses`, icon: 'shield-plus', color: 'var(--sage)' },
+                    { title: 'Milk Yield Saved', value: `$${saving.toLocaleString()}`, icon: 'trending-up', color: 'var(--straw)' },
+                    { title: 'Avg Lead Time', value: '41 Hours', icon: 'clock', color: 'var(--ink)' },
+                    { title: 'Accuracy Confirm', value: '94.2%', icon: 'check-circle-2', color: 'var(--sage)' },
                 ]);
             })
-            .catch(() => {}); // silent — keep placeholder values on failure
+            .catch(e => setError(String(e)))
+            .finally(() => setLoading(false));
     }, []);
 
     return (
         <div style={{ padding: '24px 20px', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div className="kicker" style={{ margin: 0, fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontWeight: '700' }}>Impact & Performance</div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                {metrics.map((m, i) => (
-                    <div key={i} className="card" style={{ padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                            <div style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '8px',
-                                background: 'rgba(255,255,255,0.4)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: m.color
-                            }}>
-                                <i data-lucide={m.icon} style={{ width: '18px', height: '18px' }}></i>
+            {loading ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--mist)' }}>Calculating impact metrics…</div>
+            ) : error ? (
+                <div style={{ padding: '16px', background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: '8px', color: 'var(--danger)' }}>
+                    Error loading herd data: {error}
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    {metrics.map((m, i) => (
+                        <div key={i} className="card" style={{ padding: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                <div style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '8px',
+                                    background: 'rgba(255,255,255,0.4)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: m.color
+                                }}>
+                                    <i data-lucide={m.icon} style={{ width: '18px', height: '18px' }}></i>
+                                </div>
+                            </div>
+                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: 'bold', color: 'var(--barn)', lineHeight: '1', marginBottom: '8px' }}>
+                                {m.value}
+                            </div>
+                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'var(--mist)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                {m.title}
                             </div>
                         </div>
-                        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: 'bold', color: 'var(--barn)', lineHeight: '1', marginBottom: '8px' }}>
-                            {m.value}
-                        </div>
-                        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'var(--mist)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                            {m.title}
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             <div style={{
                 background: 'var(--green)',

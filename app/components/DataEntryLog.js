@@ -3,20 +3,45 @@ const { useState, useEffect } = React;
 const API = 'http://localhost:8000'; // From main
 
 const DataEntryLog = () => {
-    const [view, setView]           = useState('entry');
+    const [view, setView] = useState('entry');
     const [submitted, setSubmitted] = useState(false);
-    const [loading, setLoading]     = useState(false);
-    const [error, setError]         = useState(null);
-    const [logs, setLogs]           = useState([
-        { date: 'Today, 06:12 AM', cow: '8492', yield: '31L', event: 'Mastitis suspected', user: 'Farm Hand JS' },
-        { date: 'Yesterday, 17:45 PM', cow: '9104', yield: '40L', event: 'None', user: 'Automated Parlor' },
-        { date: 'Yesterday, 05:30 AM', cow: '6021', yield: '44L', event: 'Lame off right hind', user: 'Farm Hand JS' },
-        { date: 'Oct 12, 18:00 PM', cow: '8492', yield: '36L', event: 'None', user: 'Automated Parlor' },
-    ]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [logs, setLogs] = useState([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+    const [logsError, setLogsError] = useState(null);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
-    }, [view, submitted]);
+    }, [view, submitted, logs, loadingLogs, logsError]);
+
+    useEffect(() => {
+        // Fetch logs on mount or when switching to log view (optional, mount is fine too)
+        if (view === 'log') {
+            setLoadingLogs(true);
+            setLogsError(null);
+            fetch(`${API}/api/logs`)
+                .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+                .then(data => {
+                    // Transform raw data to match the UI format
+                    const formattedLogs = (data.logs || []).map(r => {
+                        const dateObj = r.timestamp ? new Date(r.timestamp) : new Date();
+                        const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                        // Simple 'Today' logic for hackathon demo
+                        return {
+                            date: `Today, ${timeStr}`,
+                            cow: String(r.cow_id),
+                            yield: r.yield_kg != null ? `${r.yield_kg}L` : '—',
+                            event: r.health_event === 'none' ? 'None' : (r.health_event || 'None'),
+                            user: 'Manual Entry',
+                        };
+                    });
+                    setLogs(formattedLogs);
+                })
+                .catch(err => setLogsError(String(err)))
+                .finally(() => setLoadingLogs(false));
+        }
+    }, [view]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -25,11 +50,11 @@ const DataEntryLog = () => {
 
         const fd = new FormData(e.target);
         const payload = {
-            cow_id:       Number(fd.get('cow_id')),
-            yield_kg:     fd.get('yield_kg') ? Number(fd.get('yield_kg')) : null,
-            pen:          fd.get('pen'),
+            cow_id: Number(fd.get('cow_id')),
+            yield_kg: fd.get('yield_kg') ? Number(fd.get('yield_kg')) : null,
+            pen: fd.get('pen'),
             health_event: fd.get('health_event'),
-            notes:        fd.get('notes') || '',
+            notes: fd.get('notes') || '',
         };
 
         try {
@@ -47,7 +72,7 @@ const DataEntryLog = () => {
             // Update local log UI immediately
             const now = new Date();
             const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            
+
             setLogs(prev => [{
                 date: `Today, ${timeStr}`,
                 cow: String(payload.cow_id),
@@ -104,7 +129,7 @@ const DataEntryLog = () => {
             {view === 'entry' ? (
                 <div className="card" style={{ padding: '24px' }}>
                     <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', color: 'var(--barn)', marginBottom: '8px' }}>Manual Entry</h3>
-                    
+
                     {submitted ? (
                         <div style={{ background: 'var(--success-bg)', padding: '24px', borderRadius: '8px', textAlign: 'center' }}>
                             <i data-lucide="check-circle" style={{ color: 'var(--sage)', marginBottom: '12px' }}></i>
@@ -155,19 +180,29 @@ const DataEntryLog = () => {
                 </div>
             ) : (
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                    {logs.map((log, i) => (
-                        <div key={i} className="card" style={{ padding: '16px', marginBottom: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <strong>COW {log.cow}</strong>
-                                <span style={{ fontSize: '12px', color: 'var(--mist)' }}>{log.user}</span>
-                            </div>
-                            <div style={{ fontSize: '13px', color: 'var(--mist)' }}>{log.date}</div>
-                            <div style={{ marginTop: '8px', display: 'flex', gap: '20px' }}>
-                                <div><small>YIELD</small> <div>{log.yield}</div></div>
-                                <div><small>EVENT</small> <div style={{ color: log.event === 'None' ? 'var(--sage)' : 'var(--danger)' }}>{log.event}</div></div>
-                            </div>
+                    {loadingLogs ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--mist)' }}>Loading logs…</div>
+                    ) : logsError ? (
+                        <div style={{ padding: '16px', background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: '8px', color: 'var(--danger)' }}>
+                            Error loading logs: {logsError}
                         </div>
-                    ))}
+                    ) : logs.length === 0 ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--mist)' }}>No entries yet today.</div>
+                    ) : (
+                        logs.map((log, i) => (
+                            <div key={i} className="card" style={{ padding: '16px', marginBottom: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <strong>COW {log.cow}</strong>
+                                    <span style={{ fontSize: '12px', color: 'var(--mist)' }}>{log.user}</span>
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--mist)' }}>{log.date}</div>
+                                <div style={{ marginTop: '8px', display: 'flex', gap: '20px' }}>
+                                    <div><small>YIELD</small> <div>{log.yield}</div></div>
+                                    <div><small>EVENT</small> <div style={{ color: log.event === 'None' ? 'var(--sage)' : 'var(--danger)' }}>{log.event}</div></div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             )}
         </div>
