@@ -1,0 +1,193 @@
+:root {
+    --bg: #F2EDE4;
+    --ink: #181410;
+    --barn: #2C1A0E;
+    --earth: #5C3D1E;
+    --straw: #C9983A;
+    --straw-lt: #E8C87A;
+    --green: #2E5E1E;
+    --sage: #6A9E48;
+    --sage-lt: #A8CC80;
+    --mist: #8C8070;
+    --line: #D8D0C4;
+    --card: #FAF7F2;
+    --dark-bg: #131008;
+    --dark-mid: #1E1A10;
+    --danger: #E07050;
+    --danger-bg: rgba(224, 112, 80, 0.1);
+    --warning-bg: rgba(201, 152, 58, 0.1);
+    --success-bg: rgba(106, 158, 72, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Typography Utilities */
+.font-serif {
+    font-family: 'Cormorant Garamond', serif;
+}
+
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.font-sans {
+    font-family: 'Nunito', sans-serif;
+}
+
+/* Micro animations */
+.transition-all {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--mist);
+}
+
+/* Layout Utilities classes that map to Tailwind-like usage for speed */
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.gap-2 {
+    gap: 8px;
+}
+
+.gap-4 {
+    gap: 16px;
+}
+
+.p-4 {
+    padding: 16px;
+}
+
+.p-6 {
+    padding: 24px;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.h-full {
+    height: 100%;
+}
+
+.relative {
+    position: relative;
+}
+
+.absolute {
+    position: absolute;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Special Brand Components */
+.kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sage);
+}
+
+.logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--bg);
+    line-height: 0.9;
+    letter-spacing: -1px;
+}
+
+.logo .accent {
+    color: var(--sage);
+    font-style: italic;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.8);
+        box-shadow: 0 0 0 0 rgba(224, 112, 80, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(224, 112, 80, 0);
+    }
+
+    100% {
+        transform: scale(0.8);
+        box-shadow: 0 0 0 0 rgba(224, 112, 80, 0);
+    }
+}
+
+.animate-pulse-ring {
+    animation: pulse-ring 2s infinite;
+}

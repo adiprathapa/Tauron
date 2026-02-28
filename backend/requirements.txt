@@ -1,0 +1,34 @@
+# Tauron Backend — XAI + LLM dependencies
+# Install: pip install -r backend/requirements.txt
+#
+# LLM: Ollama is used (not llama-cpp-python) — install separately:
+#   brew install ollama && ollama pull mistral
+# See claude.md for rationale.
+
+# Core API
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.12.5
+
+# HTTP client — for Ollama REST API calls
+httpx==0.27.0
+
+# ML (install after confirming torch version for your machine)
+# M4 Mac: use the standard pip install below
+# CUDA: replace with torch==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+torch==2.3.1
+torch-geometric==2.5.3
+torch-scatter==2.1.2
+torch-sparse==0.6.18
+
+# Data utilities
+numpy==1.26.3
+scipy==1.13.1
+pandas==2.2.1       # farm DataFrame processing in graph_utils.py
+
+# Optional: Anthropic Claude API (cloud fallback for LLM when Ollama is unavailable)
+# anthropic>=0.25.0  # uncomment to enable; set ANTHROPIC_API_KEY in environment
+
+# Testing
+pytest==8.1.1
+httpx==0.27.0   # also used by FastAPI TestClient for async tests
