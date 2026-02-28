@@ -1,28 +1,69 @@
 const { useState, useEffect } = React;
 
+const API = '';
+
 const DataEntryLog = () => {
     const [view, setView] = useState('entry'); // 'entry' or 'log'
     const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [logs, setLogs] = useState([
+        { date: 'Today, 06:12 AM', cow: '8492', yield: '31L', event: 'Mastitis suspected', user: 'Farm Hand JS' },
+        { date: 'Yesterday, 17:45 PM', cow: '9104', yield: '40L', event: 'None', user: 'Automated Parlor' },
+        { date: 'Yesterday, 05:30 AM', cow: '6021', yield: '44L', event: 'Lame off right hind', user: 'Farm Hand JS' },
+        { date: 'Oct 12, 18:00 PM', cow: '8492', yield: '36L', event: 'None', user: 'Automated Parlor' },
+    ]);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
     });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(true);
-        setTimeout(() => {
-            setSubmitted(false);
-            e.target.reset();
-        }, 2000);
-    };
+        setLoading(true);
+        setError(null);
 
-    const mockLogs = [
-        { date: 'Today, 06:12 AM', cow: '8492', yield: '31L', event: 'Mastitis suspected', user: 'Farm Hand JS' },
-        { date: 'Yesterday, 17:45 PM', cow: '9104', yield: '40L', event: 'None', user: 'Automated Parlor' },
-        { date: 'Yesterday, 05:30 AM', cow: '6021', yield: '44L', event: 'Lame off right hind', user: 'Farm Hand JS' },
-        { date: 'Oct 12, 18:00 PM', cow: '8492', yield: '36L', event: 'None', user: 'Automated Parlor' },
-    ];
+        const els = e.target.elements;
+        const payload = {
+            cow_id: parseInt(els.cowId.value, 10),
+            date: new Date().toISOString().split('T')[0],
+            milk_yield_kg: els.yieldL.value ? parseFloat(els.yieldL.value) : null,
+            pen_id: els.penId.value,
+            health_event: els.healthEvent.value,
+            notes: els.notes.value,
+        };
+
+        try {
+            const res = await fetch(`${API}/api/ingest`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: res.statusText }));
+                throw new Error(err.detail || res.statusText);
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            setLogs(prev => [{
+                date: `Today, ${timeStr}`,
+                cow: String(payload.cow_id),
+                yield: payload.milk_yield_kg != null ? `${payload.milk_yield_kg}L` : '—',
+                event: payload.health_event === 'none' ? 'None' : payload.health_event,
+                user: 'Manual Entry',
+            }, ...prev]);
+
+            setSubmitted(true);
+            e.target.reset();
+            setTimeout(() => setSubmitted(false), 2000);
+        } catch (err) {
+            setError(err.message || 'Failed to save record');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const inputStyle = {
         width: '100%',
@@ -112,17 +153,17 @@ const DataEntryLog = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>Cow ID</label>
-                                    <input type="number" placeholder="e.g. 8492" required style={inputStyle} />
+                                    <input name="cowId" type="number" placeholder="e.g. 8492" required style={inputStyle} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Yield (Liters)</label>
-                                    <input type="number" step="0.1" placeholder="0.0" style={inputStyle} />
+                                    <input name="yieldL" type="number" step="0.1" placeholder="0.0" style={inputStyle} />
                                 </div>
                             </div>
 
                             <div>
                                 <label style={labelStyle}>Pen / Location</label>
-                                <select style={{ ...inputStyle, background: 'var(--card)' }}>
+                                <select name="penId" style={{ ...inputStyle, background: 'var(--card)' }}>
                                     <option value="A1">Pen A1</option>
                                     <option value="A2">Pen A2</option>
                                     <option value="B1">Pen B1</option>
@@ -132,7 +173,7 @@ const DataEntryLog = () => {
 
                             <div>
                                 <label style={labelStyle}>Health Event (If Any)</label>
-                                <select style={{ ...inputStyle, background: 'var(--card)' }}>
+                                <select name="healthEvent" style={{ ...inputStyle, background: 'var(--card)' }}>
                                     <option value="none">None - Healthy</option>
                                     <option value="lame">Lameness observed</option>
                                     <option value="mastitis">Mastitis symptoms</option>
@@ -143,13 +184,19 @@ const DataEntryLog = () => {
 
                             <div>
                                 <label style={labelStyle}>Observation Notes</label>
-                                <textarea rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
+                                <textarea name="notes" rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
                             </div>
 
-                            <button type="submit" style={{
+                            {error && (
+                                <div style={{ background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', color: 'var(--danger)' }}>
+                                    {error}
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={loading} style={{
                                 width: '100%',
                                 padding: '14px',
-                                background: 'var(--barn)',
+                                background: loading ? 'var(--mist)' : 'var(--barn)',
                                 color: 'var(--bg)',
                                 border: 'none',
                                 borderRadius: '8px',
@@ -158,15 +205,15 @@ const DataEntryLog = () => {
                                 fontWeight: 'bold',
                                 letterSpacing: '0.1em',
                                 textTransform: 'uppercase',
-                                cursor: 'pointer',
+                                cursor: loading ? 'not-allowed' : 'pointer',
                                 transition: 'background 0.2s',
                                 display: 'flex',
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 gap: '8px'
-                            }} className="hover-lift">
-                                <i data-lucide="save" style={{ width: '16px', height: '16px' }}></i>
-                                Save Record
+                            }} className={loading ? '' : 'hover-lift'}>
+                                <i data-lucide={loading ? 'loader' : 'save'} style={{ width: '16px', height: '16px' }}></i>
+                                {loading ? 'Saving…' : 'Save Record'}
                             </button>
                         </form>
                     )}
@@ -174,7 +221,7 @@ const DataEntryLog = () => {
             ) : (
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeIn 0.3s' }}>
-                        {mockLogs.map((log, i) => (
+                        {logs.map((log, i) => (
                             <div key={i} className="card" style={{ padding: '16px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                                     <div>
