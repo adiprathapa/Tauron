@@ -15,41 +15,48 @@ const SustainabilityImpact = () => {
         { title: 'Antibiotics Avoided', value: '—', icon: 'shield-plus', color: 'var(--sage)' },
         { title: 'Milk Yield Saved', value: '—', icon: 'trending-up', color: 'var(--straw)' },
         { title: 'Avg Lead Time', value: '—', icon: 'clock', color: 'var(--ink)' },
-        { title: 'Cows Monitored', value: '—', icon: 'check-circle-2', color: 'var(--sage)' },
+        { title: 'Alerts Confirmed', value: '—', icon: 'check-circle-2', color: 'var(--sage)' },
     ]);
 
     useEffect(() => {
         fetch(`${API}/api/tier`)
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(setTierInfo)
-            .catch(() => {}); // non-critical — banner stays hidden on failure
+            .catch(() => { }); // non-critical — banner stays hidden on failure
     }, []);
 
     useEffect(() => {
-        fetch(`${API}/herd`)
+        fetch(`${API}/api/impact`)
             .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
             .then(data => {
-                const alertCows = data.cows.filter(c => c.status === 'alert');
-                const watchCows = data.cows.filter(c => c.status === 'watch');
-                const alertCount = alertCows.length;
-                const watchCount = watchCows.length;
-
-                // Industry estimate: early detection saves ~2 antibiotic courses per alert cow,
-                // ~1 per watch cow; milk savings ~$280/alert cow, $85/watch cow (7-day projection)
-                const doses = alertCount * 2 + watchCount;
-                const saving = alertCount * 280 + watchCount * 85;
-
-                // Lead time: risk score above threshold (0.70) mapped to 0–48h detection window
-                // score=1.0 → 48h early; score=0.70 → 0h (just triggered)
-                const avgLeadTime = alertCount > 0
-                    ? Math.round(alertCows.reduce((sum, c) => sum + (c.risk_score - 0.70) / 0.30 * 48, 0) / alertCount)
-                    : null;
-
+                const fmt = (val, suffix) => val != null ? `${val}${suffix}` : '—';
                 setMetrics([
-                    { title: 'Antibiotics Avoided', value: doses > 0 ? `${doses} Doses` : '—', icon: 'shield-plus', color: 'var(--sage)' },
-                    { title: 'Milk Yield Saved', value: saving > 0 ? `$${saving.toLocaleString()}` : '—', icon: 'trending-up', color: 'var(--straw)' },
-                    { title: 'Avg Lead Time', value: avgLeadTime != null ? `${avgLeadTime}h` : '—', icon: 'clock', color: 'var(--ink)' },
-                    { title: 'Cows Monitored', value: String(data.cows.length), icon: 'check-circle-2', color: 'var(--sage)' },
+                    {
+                        title: 'Antibiotics Avoided',
+                        value: data.antibiotic_doses_avoided > 0
+                            ? `${data.antibiotic_doses_avoided} Doses`
+                            : '—',
+                        icon: 'shield-plus', color: 'var(--sage)',
+                    },
+                    {
+                        title: 'Milk Yield Saved',
+                        value: data.milk_yield_saved_usd > 0
+                            ? `$${data.milk_yield_saved_usd.toLocaleString()}`
+                            : '—',
+                        icon: 'trending-up', color: 'var(--straw)',
+                    },
+                    {
+                        title: 'Avg Lead Time',
+                        value: fmt(data.avg_lead_time_hours, 'h'),
+                        icon: 'clock', color: 'var(--ink)',
+                    },
+                    {
+                        title: 'Alerts Confirmed',
+                        value: data.alerts_confirmed_pct != null
+                            ? `${data.alerts_confirmed_pct}%`
+                            : '—',
+                        icon: 'check-circle-2', color: 'var(--sage)',
+                    },
                 ]);
             })
             .catch(e => setError(String(e)))
@@ -58,13 +65,13 @@ const SustainabilityImpact = () => {
 
     return (
         <div style={{ padding: '24px 20px', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div className="kicker" style={{ margin: 0, fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontWeight: '700' }}>Impact & Performance</div>
+            <div className="kicker" style={{ margin: 0, fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontWeight: '700' }}>Impact &amp; Performance</div>
 
             {loading ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--mist)' }}>Calculating impact metrics…</div>
             ) : error ? (
                 <div style={{ padding: '16px', background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: '8px', color: 'var(--danger)' }}>
-                    Error loading herd data: {error}
+                    Error loading impact data: {error}
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
