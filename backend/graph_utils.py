@@ -299,6 +299,44 @@ def _dict_to_df(farm_data: dict) -> pd.DataFrame:
 # Public interface
 # ---------------------------------------------------------------------------
 
+# ── Demo staging ───────────────────────────────────────────────────────────
+def stage_demo(farm_df: pd.DataFrame, patient_zero: int = 47,
+               event_date: str = "2026-01-13") -> pd.DataFrame:
+    """
+    Inject a 3-day prodromal mastitis signal for Cow #patient_zero,
+    matching sensor patterns from Rutten et al. 2017:
+    activity drops → ear temp rises → milk yield falls sharply on event day.
+    """
+    df  = farm_df.copy()
+    evd = pd.Timestamp(event_date)
+
+    prodromes = [
+        (3, {"activity": 0.95, "rumination_min": 0.97,
+             "ear_temp_c": lambda x: x + 0.2}),
+        (2, {"activity": 0.88, "rumination_min": 0.92,
+             "ear_temp_c": lambda x: x + 0.5, "milk_yield_kg": 0.94}),
+        (1, {"activity": 0.78, "rumination_min": 0.85,
+             "ear_temp_c": lambda x: x + 0.9, "milk_yield_kg": 0.88}),
+    ]
+    for delta, changes in prodromes:
+        mask = (df["cow_id"] == patient_zero) & (df["date"] == evd - timedelta(days=delta))
+        for col, fn in changes.items():
+            if mask.any() and col in df.columns:
+                df.loc[mask, col] = df.loc[mask, col].apply(
+                    fn if callable(fn) else lambda x, f=fn: x * f
+                )
+
+    mask = (df["cow_id"] == patient_zero) & (df["date"] == evd)
+    if mask.any():
+        df.loc[mask, "milk_yield_kg"]   *= 0.78
+        df.loc[mask, "ear_temp_c"]       = 39.8
+        df.loc[mask, "activity"]        *= 0.65
+        df.loc[mask, "rumination_min"]  *= 0.70
+        df.loc[mask, "health_event"]     = 1
+
+    return df
+
+
 def build_graph(farm_data=None) -> Data:
     """
     Construct a PyTorch Geometric Data object from farm records.
@@ -318,13 +356,29 @@ def build_graph(farm_data=None) -> Data:
             num_nodes  int
             date       str             snapshot date (YYYY-MM-DD)
     """
+    snapshot_date = None
     if farm_data is None:
         farm_df = _generate_farm()
+        # Append extra days and stage Cow 47 mastitis just like api.py
+        rng     = np.random.default_rng(99)
+        extra   = pd.date_range("2025-12-30", "2026-01-15")
+        rows    = []
+        for d in extra:
+            for cow in range(N_COWS):
+                r = farm_df[farm_df["cow_id"] == cow].iloc[-1].copy()
+                r["date"]          = d
+                r["milk_yield_kg"] = float(r["milk_yield_kg"]) + rng.normal(0, 0.4)
+                rows.append(r)
+        
+        farm_df = pd.concat([farm_df, pd.DataFrame(rows)], ignore_index=True)
+        farm_df = stage_demo(farm_df)
+        snapshot_date = "2026-01-13"  # freeze at the height of the outbreak
     elif isinstance(farm_data, pd.DataFrame):
         farm_df = farm_data
     else:
         farm_df = _dict_to_df(farm_data)
-    return _build_graph_from_df(farm_df)
+    
+    return _build_graph_from_df(farm_df, snapshot_date=snapshot_date)
 
 
 def run_inference(graph_data: Data) -> dict:

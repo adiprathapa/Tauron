@@ -66,6 +66,10 @@ class IngestPayload(BaseModel):
     notes: Optional[str] = ""
 
 
+class BatchIngestPayload(BaseModel):
+    records: list[dict]
+
+
 # In-memory log — resets on server restart (fine for hackathon demo)
 _ingest_log: list[dict] = []
 
@@ -225,15 +229,29 @@ async def get_logs():
     return {"logs": _ingest_log}
 
 @app.post("/api/ingest")
-async def ingest(payload: IngestPayload):
+async def ingest(payload: IngestPayload | BatchIngestPayload):
     """
-    Accept a single manual farm observation.
+    Accept single or batch farm observations.
     Stores in-memory for the session (resets on restart).
-    Returns: {status, rows}
+    Returns: {status, rows, total}
     """
     from datetime import datetime
-    record = payload.model_dump()
-    record["timestamp"] = datetime.utcnow().isoformat()
-    # Prepend instead of append to show newest first
-    _ingest_log.insert(0, record)
-    return {"status": "ok", "rows": 1, "total": len(_ingest_log)}
+    
+    if isinstance(payload, BatchIngestPayload):
+        count = len(payload.records)
+        for r in reversed(payload.records):
+            r["timestamp"] = datetime.utcnow().isoformat()
+            if "Cow ID" in r:
+                r["cow_id"] = r["Cow ID"]
+            if "Milk Yield (kg)" in r:
+                r["yield_kg"] = r["Milk Yield (kg)"]
+            if "Health Event" in r:
+                r["health_event"] = r["Health Event"]
+            _ingest_log.insert(0, r)
+        return {"status": "ok", "rows": count, "total": len(_ingest_log)}
+    else:
+        record = payload.model_dump()
+        record["timestamp"] = datetime.utcnow().isoformat()
+        _ingest_log.insert(0, record)
+        return {"status": "ok", "rows": 1, "total": len(_ingest_log)}
+
