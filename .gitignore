@@ -207,12 +207,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Claude Code
-CLAUDE.md
-
-# Tauron ML outputs
+# Tauron ML outputs (generated — do not commit)
 data/
 models/
 *.pt
-api.py
-tauron_pipeline.py
