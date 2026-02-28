@@ -87,10 +87,42 @@ def herd():
     """All cow risk scores + graph edges for the pre-seeded demo farm."""
     if _scores is None:
         raise HTTPException(503, "model not loaded")
+
+    cows = []
+    for cow_id, risks in _scores.items():
+        risk_score = max(risks.values())
+        if risk_score > 0.70:
+            status = "alert"
+        elif risk_score >= 0.40:
+            status = "watch"
+        else:
+            status = "ok"
+
+        dominant_disease = max(risks, key=risks.get) if status != "ok" else None
+        all_risks = {d: round(float(v), 3) for d, v in risks.items()} if status != "ok" else None
+
+        # Get top_feature via explain_cow for non-ok cows
+        top_feature = None
+        if status != "ok" and cow_id in _graph.cow_ids:
+            try:
+                xai = tp.explain_cow(_graph, _graph.cow_ids.index(cow_id))
+                top_feature = xai.get("top_feature")
+            except Exception:
+                pass
+
+        cows.append({
+            "id": int(cow_id),
+            "risk_score": round(float(risk_score), 3),
+            "status": status,
+            "top_feature": top_feature,
+            "dominant_disease": dominant_disease,
+            "all_risks": all_risks,
+        })
+
     ei = _graph.edge_index.t().tolist()
     ew = _graph.edge_attr.squeeze(-1).tolist()
     return JSONResponse(_sanitize({
-        "cows":  _scores,
+        "cows":  cows,
         "edges": [{"src": e[0], "dst": e[1], "w": w} for e, w in zip(ei, ew)],
     }))
 
@@ -146,7 +178,7 @@ async def explain(cow_id: int):
     }
 
     alert_text = await generate_alert(xai_json)
-    return JSONResponse({"cow_id": f"#{cow_id}", "alert": alert_text, "xai": xai})
+    return JSONResponse({"cow_id": f"#{cow_id}", "alert_text": alert_text, **xai})
 
 
 @app.post("/api/ingest")
