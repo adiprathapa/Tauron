@@ -15,7 +15,7 @@ Mock mode:
 CORS: allow_origins=["*"] is intentional for localhost dev — lock down if deployed.
 """
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import List, Optional
 
 import pandas as pd
@@ -25,6 +25,53 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.mock_data import MOCK_HERD, MOCK_EXPLAIN, USE_MOCK
+
+# ---------------------------------------------------------------------------
+# Live herd state — module-level singletons, reset only on process restart
+#
+# _farm_df        : 60-cow synthetic base DataFrame, generated once on first use
+# _field_overrides: {cow_id (int): {sensor_feature: float}} — applied to the
+#                   last 7 days of _farm_df before each graph build
+# _herd_result    : cached run_inference() output, invalidated after each ingest
+# ---------------------------------------------------------------------------
+_farm_df:         Optional[pd.DataFrame] = None
+_field_overrides: dict                   = {}
+_herd_result:     Optional[dict]         = None
+
+# Sensor features accepted from CSV / JSON ingest
+_INGESTABLE_FIELDS = frozenset({
+    "activity", "highly_active", "rumination_min", "feeding_min",
+    "ear_temp_c", "milk_yield_kg", "health_event", "feeding_visits",
+    "days_in_milk", "pen_id", "bunk_id",
+})
+
+
+def _ensure_farm_df() -> pd.DataFrame:
+    global _farm_df
+    if _farm_df is None:
+        from backend.graph_utils import generate_farm_df
+        _farm_df = generate_farm_df()
+    return _farm_df
+
+
+def _rebuild_herd() -> dict:
+    """Apply field overrides, rebuild graph, run inference, cache and return result."""
+    global _herd_result
+    from backend.graph_utils import build_graph, run_inference
+
+    farm = _ensure_farm_df().copy()
+    if _field_overrides:
+        last_date = farm["date"].max()
+        cutoff    = last_date - pd.Timedelta(days=6)
+        for cow_id, fields in _field_overrides.items():
+            mask = (farm["cow_id"] == cow_id) & (farm["date"] >= cutoff)
+            for field, value in fields.items():
+                if field in farm.columns:
+                    farm.loc[mask, field] = value
+
+    graph        = build_graph(farm)
+    _herd_result = run_inference(graph)
+    return _herd_result
 
 
 # ---------------------------------------------------------------------------
@@ -175,13 +222,14 @@ async def get_herd():
     - all_risks: individual scores per disease (null if ok)
 
     Adjacency matrix row/col order matches the cows list order exactly.
+    Result is cached and only rebuilt when new data is ingested via /api/ingest.
     """
     if USE_MOCK:
         return MOCK_HERD
 
-    from backend.graph_utils import build_graph, run_inference
-    graph = build_graph()
-    return run_inference(graph)
+    if _herd_result is None:
+        return _rebuild_herd()
+    return _herd_result
 
 
 @app.get("/explain/{cow_id}", response_model=ExplainResponse)
@@ -228,12 +276,72 @@ async def get_logs():
 async def ingest(payload: IngestPayload):
     """
     Accept a single manual farm observation.
-    Stores in-memory for the session (resets on restart).
-    Returns: {status, rows}
+    Stores in-memory and rebuilds herd risk scores if measurable fields are provided.
+    Returns: {status, rows, total, herd_updated}
     """
-    from datetime import datetime
+    global _field_overrides
     record = payload.model_dump()
-    record["timestamp"] = datetime.utcnow().isoformat()
-    # Prepend instead of append to show newest first
+    record["timestamp"] = datetime.now(UTC).isoformat()
     _ingest_log.insert(0, record)
-    return {"status": "ok", "rows": 1, "total": len(_ingest_log)}
+
+    herd_updated = False
+    if not USE_MOCK:
+        new_fields: dict = {}
+        if payload.yield_kg is not None:
+            new_fields["milk_yield_kg"] = float(payload.yield_kg)
+        if payload.health_event and payload.health_event != "none":
+            new_fields["health_event"] = 1.0
+        if new_fields:
+            _field_overrides[payload.cow_id] = {
+                **_field_overrides.get(payload.cow_id, {}),
+                **new_fields,
+            }
+            _rebuild_herd()
+            herd_updated = True
+
+    return {"status": "ok", "rows": 1, "total": len(_ingest_log), "herd_updated": herd_updated}
+
+
+class _CsvIngestPayload(BaseModel):
+    records: List[dict]
+
+
+@app.post("/api/ingest/csv")
+async def ingest_csv(payload: _CsvIngestPayload):
+    """
+    Accept batch farm observations from a CSV upload.
+
+    Expected format (parsed by the frontend into JSON):
+        records: [{cow_id, milk_yield_kg?, activity?, health_event?, ...}, ...]
+
+    Rebuilds herd risk scores after applying overrides to the last 7-day window.
+    Returns: {status, rows, cows_updated}
+    """
+    global _field_overrides
+    cows_updated: set = set()
+
+    for row in payload.records:
+        if "cow_id" not in row:
+            continue
+        try:
+            cow_id = int(row["cow_id"])
+        except (ValueError, TypeError):
+            continue
+
+        fields: dict = {}
+        for key in _INGESTABLE_FIELDS:
+            raw = row.get(key)
+            if raw not in (None, ""):
+                try:
+                    fields[key] = float(raw)
+                except (ValueError, TypeError):
+                    pass
+
+        if fields:
+            _field_overrides[cow_id] = {**_field_overrides.get(cow_id, {}), **fields}
+            cows_updated.add(cow_id)
+
+    if not USE_MOCK and cows_updated:
+        _rebuild_herd()
+
+    return {"status": "ok", "rows": len(payload.records), "cows_updated": len(cows_updated)}

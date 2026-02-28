@@ -429,3 +429,7 @@ def get_gnn_explainer_output(cow_id: int, graph_data: Data) -> dict:
         "feature_names":    SENSOR_FEATURES,
         "feature_delta":    feature_delta,
     }
+
+
+# Public alias so main.py can seed its farm state without importing a private symbol.
+generate_farm_df = _generate_farm

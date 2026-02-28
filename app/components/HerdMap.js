@@ -15,8 +15,10 @@ const HerdMap = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Fetch /herd on mount
-    useEffect(() => {
+    // Fetch /herd — used on mount and after ingest
+    const fetchHerd = () => {
+        setLoading(true);
+        setError(null);
         fetch(`${API}/herd`)
             .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
             .then(data => {
@@ -45,6 +47,15 @@ const HerdMap = () => {
             })
             .catch(e => setError(String(e)))
             .finally(() => setLoading(false));
+    };
+
+    // Fetch on mount
+    useEffect(() => { fetchHerd(); }, []);
+
+    // Re-fetch whenever DataEntryLog signals new data was ingested
+    useEffect(() => {
+        window.addEventListener('herd-refresh', fetchHerd);
+        return () => window.removeEventListener('herd-refresh', fetchHerd);
     }, []);
 
     // Fetch /explain when a node is selected

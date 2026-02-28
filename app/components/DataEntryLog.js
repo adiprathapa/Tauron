@@ -83,6 +83,7 @@ const DataEntryLog = () => {
             }, ...prev]);
 
             setSubmitted(true);
+            window.dispatchEvent(new CustomEvent('herd-refresh'));
             e.target.reset();
             setTimeout(() => setSubmitted(false), 2000);
         } catch (err) {
@@ -116,7 +117,7 @@ const DataEntryLog = () => {
                     }, {});
                 });
 
-                const response = await fetch(`${API}/api/ingest`, {
+                const response = await fetch(`${API}/api/ingest/csv`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ records: data })
@@ -126,7 +127,9 @@ const DataEntryLog = () => {
                     throw new Error(`Server returned status: ${response.status}`);
                 }
 
-                setUploadSuccess(`Successfully uploaded ${data.length} records.`);
+                const result = await response.json();
+                setUploadSuccess(`Uploaded ${result.rows} rows — ${result.cows_updated} cow(s) updated. Herd map refreshing…`);
+                window.dispatchEvent(new CustomEvent('herd-refresh'));
                 if (fileInputRef.current) fileInputRef.current.value = '';
             } catch (err) {
                 setUploadError(err.message || "Failed to parse or upload CSV.");
