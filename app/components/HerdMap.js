@@ -3,17 +3,17 @@ const { useEffect, useRef, useState } = React;
 const API = 'http://localhost:8000';
 const PEN_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-const derivePen    = (id) => 'Pen ' + (PEN_LABELS[Math.min(Math.floor(id / 10), PEN_LABELS.length - 1)] || 'X');
-const statusToRisk = (s)  => s === 'alert' ? 'high' : (s === 'watch' ? 'warn' : 'ok');
+const derivePen = (id) => 'Pen ' + (PEN_LABELS[Math.min(Math.floor(id / 10), PEN_LABELS.length - 1)] || 'X');
+const statusToRisk = (s) => s === 'alert' ? 'high' : (s === 'watch' ? 'warn' : 'ok');
 
 const HerdMap = () => {
     const svgRef = useRef();
-    const [selectedNode, setSelectedNode]     = useState(null);
+    const [selectedNode, setSelectedNode] = useState(null);
     const [selectedExplain, setSelectedExplain] = useState(null);
-    const [isMobile, setIsMobile]             = useState(window.innerWidth < 768);
-    const [herdData, setHerdData]             = useState(null);
-    const [loading, setLoading]               = useState(true);
-    const [error, setError]                   = useState(null);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [herdData, setHerdData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     // Fetch /herd on mount
     useEffect(() => {
@@ -21,19 +21,19 @@ const HerdMap = () => {
             .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
             .then(data => {
                 const nodes = data.cows.map(c => ({
-                    id:              `Cow ${c.id}`,
-                    cowId:           c.id,
-                    group:           Math.floor(c.id / 10) + 1,
-                    risk:            statusToRisk(c.status),
-                    pen:             derivePen(c.id),
-                    riskScore:       c.risk_score,
+                    id: `Cow ${c.id}`,
+                    cowId: c.id,
+                    group: Math.floor(c.id / 10) + 1,
+                    risk: statusToRisk(c.status),
+                    pen: derivePen(c.id),
+                    riskScore: c.risk_score,
                     dominantDisease: c.dominant_disease,
-                    allRisks:        c.all_risks,
+                    allRisks: c.all_risks,
                 }));
 
                 // Adjacency matrix → undirected link list (i < j dedup)
                 const links = [];
-                const adj   = data.adjacency || [];
+                const adj = data.adjacency || [];
                 for (let i = 0; i < adj.length; i++) {
                     for (let j = i + 1; j < (adj[i] || []).length; j++) {
                         if (adj[i][j]) {
@@ -54,7 +54,7 @@ const HerdMap = () => {
         fetch(`${API}/explain/${selectedNode.cowId}`)
             .then(r => r.ok ? r.json() : Promise.reject(r.status))
             .then(setSelectedExplain)
-            .catch(() => {});
+            .catch(() => { });
     }, [selectedNode]);
 
     useEffect(() => {
@@ -68,7 +68,7 @@ const HerdMap = () => {
         if (isMobile || !svgRef.current || !herdData) return;
         if (typeof d3 === 'undefined') return;
 
-        const width  = svgRef.current.clientWidth;
+        const width = svgRef.current.clientWidth;
         const height = svgRef.current.clientHeight || 400;
 
         const svg = d3.select(svgRef.current);
@@ -79,9 +79,9 @@ const HerdMap = () => {
         const links = herdData.links.map(d => ({ ...d }));
 
         const simulation = d3.forceSimulation(nodes)
-            .force("link",    d3.forceLink(links).id(d => d.id).distance(60))
-            .force("charge",  d3.forceManyBody().strength(-150))
-            .force("center",  d3.forceCenter(width / 2, height / 2))
+            .force("link", d3.forceLink(links).id(d => d.id).distance(60))
+            .force("charge", d3.forceManyBody().strength(-150))
+            .force("center", d3.forceCenter(width / 2, height / 2))
             .force("collide", d3.forceCollide().radius(20));
 
         const getColor = (risk) => {
@@ -134,7 +134,7 @@ const HerdMap = () => {
                 d.fx = d.x; d.fy = d.y;
             })
             .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
-            .on("end",  (event, d) => {
+            .on("end", (event, d) => {
                 if (!event.active) simulation.alphaTarget(0);
                 d.fx = null; d.fy = null;
             }));
@@ -174,11 +174,16 @@ const HerdMap = () => {
 
     const renderMobileGrid = () => {
         if (!herdData) return null;
+
+        // Group cows by pen
         const pens = herdData.nodes.reduce((acc, node) => {
             if (!acc[node.pen]) acc[node.pen] = [];
             acc[node.pen].push(node);
             return acc;
         }, {});
+
+        // Find max stalls per pen so all rows share the same column count
+        const maxStalls = Math.max(...Object.values(pens).map(p => p.length));
 
         const getColor = (risk) => {
             if (risk === 'high') return 'var(--danger)';
@@ -186,42 +191,147 @@ const HerdMap = () => {
             return 'var(--sage)';
         };
 
+        const getRiskLabel = (risk) => {
+            if (risk === 'high') return '● Alert';
+            if (risk === 'warn') return '◐ Watch';
+            return '';
+        };
+
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {Object.keys(pens).sort().map(pen => (
-                    <div key={pen} className="card" style={{ padding: '20px' }}>
-                        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--barn)' }}>{pen}</h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
-                            {pens[pen].map(cow => (
-                                <div
-                                    key={cow.id}
-                                    onClick={() => setSelectedNode(cow)}
-                                    style={{
-                                        width: '100%',
-                                        aspectRatio: '1',
-                                        background: getColor(cow.risk),
-                                        borderRadius: '8px',
-                                        cursor: 'pointer',
-                                        boxShadow: cow.riskLevel > 0.70 ? '0 0 12px rgba(224, 112, 80, 0.6)' : 'none',
-                                        opacity: cow.riskLevel <= 0.4 ? 0.4 : 1,
-                                        transition: 'all 0.2s',
-                                        animation: cow.riskLevel > 0.70 ? 'pulse-ring 2s infinite' : 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#FAF7F2',
-                                        fontFamily: 'JetBrains Mono, monospace',
-                                        fontSize: '10px',
-                                        fontWeight: 'bold'
-                                    }}
-                                    title={cow.id}
-                                >
-                                    {cow.riskLevel > 0.70 ? cow.id.replace('Cow ', '') : ''}
-                                </div>
-                            ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                {/* Column header row */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: `48px repeat(${maxStalls}, 1fr)`,
+                    gap: '3px',
+                    padding: '0 0 6px 0',
+                    alignItems: 'end'
+                }}>
+                    <div style={{
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '8px',
+                        color: 'var(--mist)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        textAlign: 'center',
+                        paddingBottom: '2px'
+                    }}>Pen</div>
+                    {Array.from({ length: maxStalls }, (_, i) => (
+                        <div key={i} style={{
+                            fontFamily: 'JetBrains Mono, monospace',
+                            fontSize: '8px',
+                            color: 'var(--mist)',
+                            textAlign: 'center',
+                            letterSpacing: '0.05em'
+                        }}>
+                            {i + 1}
                         </div>
+                    ))}
+                </div>
+
+                {/* Pen rows */}
+                {Object.keys(pens).sort().map(pen => (
+                    <div key={pen} style={{
+                        display: 'grid',
+                        gridTemplateColumns: `48px repeat(${maxStalls}, 1fr)`,
+                        gap: '3px',
+                        padding: '3px 0',
+                        borderTop: '1px solid var(--line)'
+                    }}>
+                        {/* Pen label cell */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontFamily: 'Cormorant Garamond, serif',
+                            fontSize: '14px',
+                            fontWeight: '700',
+                            color: 'var(--barn)',
+                            background: 'rgba(44, 26, 14, 0.04)',
+                            borderRadius: '6px',
+                            minHeight: '36px'
+                        }}>
+                            {pen.replace('Pen ', '')}
+                        </div>
+
+                        {/* Stall cells */}
+                        {pens[pen].map(cow => (
+                            <div
+                                key={cow.id}
+                                onClick={() => setSelectedNode(cow)}
+                                style={{
+                                    aspectRatio: '1',
+                                    background: getColor(cow.risk),
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    boxShadow: cow.risk === 'high' ? '0 0 8px rgba(224, 112, 80, 0.5)' : 'none',
+                                    opacity: cow.risk === 'ok' ? 0.35 : 1,
+                                    transition: 'all 0.2s ease',
+                                    animation: cow.risk === 'high' ? 'pulse-ring 2s infinite' : 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    position: 'relative',
+                                    minHeight: '36px'
+                                }}
+                                title={`${cow.id} — ${cow.risk.toUpperCase()}`}
+                            >
+                                <span style={{
+                                    fontFamily: 'JetBrains Mono, monospace',
+                                    fontSize: '8px',
+                                    fontWeight: '700',
+                                    color: cow.risk === 'ok' ? 'rgba(255,255,255,0.8)' : '#fff',
+                                    textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                                }}>
+                                    {cow.cowId}
+                                </span>
+                            </div>
+                        ))}
+
+                        {/* Empty stall placeholders */}
+                        {Array.from({ length: maxStalls - pens[pen].length }, (_, i) => (
+                            <div key={`empty-${i}`} style={{
+                                aspectRatio: '1',
+                                background: 'rgba(216, 208, 196, 0.15)',
+                                borderRadius: '6px',
+                                border: '1px dashed var(--line)',
+                                minHeight: '36px'
+                            }} />
+                        ))}
                     </div>
                 ))}
+
+                {/* Legend */}
+                <div style={{
+                    display: 'flex',
+                    gap: '16px',
+                    padding: '12px 0 4px 0',
+                    borderTop: '1px solid var(--line)',
+                    marginTop: '4px'
+                }}>
+                    {[
+                        { color: 'var(--danger)', label: 'Alert' },
+                        { color: 'var(--straw)', label: 'Watch' },
+                        { color: 'var(--sage)', label: 'OK' }
+                    ].map(item => (
+                        <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{
+                                width: '10px',
+                                height: '10px',
+                                borderRadius: '3px',
+                                background: item.color,
+                                opacity: item.label === 'OK' ? 0.35 : 1
+                            }} />
+                            <span style={{
+                                fontFamily: 'JetBrains Mono, monospace',
+                                fontSize: '9px',
+                                color: 'var(--mist)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.1em'
+                            }}>{item.label}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     };
