@@ -7,14 +7,13 @@
     <title>Tauron — Pitch Deck · Cornell Digital Ag Hackathon 2026</title>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
-    <!-- We will override this -->
 
     <style>
-        /* Tauron Base Aesthetic */
+        /* ── Tauron Design Tokens ────────────────────────────────────────────── */
         :root {
             --bg: #F2EDE4;
             --ink: #181410;
@@ -31,270 +30,495 @@
             --dark-bg: #131008;
             --dark-mid: #1E1A10;
             --dark-card: #1A1508;
+            --danger: #D64545;
         }
 
+        /* ── Reveal Base ─────────────────────────────────────────────────────── */
         .reveal {
             font-family: 'Cormorant Garamond', serif;
             font-weight: 300;
             color: var(--bg);
+            background: var(--dark-bg);
         }
 
         .reveal .slides {
             text-align: left;
-            /* Default left-aligned, we can center specific slides */
         }
 
-        .reveal h1,
-        .reveal h2,
-        .reveal h3,
-        .reveal h4,
-        .reveal h5,
-        .reveal h6 {
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
             font-family: 'Cormorant Garamond', serif;
             text-transform: none;
             font-weight: 700;
             color: var(--bg);
+            letter-spacing: -0.01em;
+            line-height: 1.05;
+            margin-bottom: 0;
         }
 
-        /* Noise Overlay inherited from slides.html */
+        .reveal section {
+            padding: 42px 6% !important;
+        }
+
+        .reveal section.center-slide {
+            text-align: center;
+        }
+
+        /* ── Noise Overlay ───────────────────────────────────────────────────── */
         .noise-overlay {
             position: fixed;
             inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
             pointer-events: none;
             z-index: 9999;
         }
 
-        /* Globals */
-        .kicker {
-            font-size: 0.4em;
-            letter-spacing: 0.28em;
-            text-transform: uppercase;
-            color: var(--sage);
-            margin-bottom: 20px;
-            display: block;
-        }
-
+        /* ── Typography Classes ──────────────────────────────────────────────── */
         .eyebrow {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 0.4em;
+            font-size: 0.38em;
             letter-spacing: 0.26em;
             text-transform: uppercase;
             color: var(--sage);
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
 
         .eyebrow::before {
             content: '';
-            width: 24px;
+            width: 22px;
             height: 1px;
             background: var(--sage);
             flex-shrink: 0;
         }
 
-        .text-sage {
-            color: var(--sage);
+        .eyebrow.gold { color: var(--straw); }
+        .eyebrow.gold::before { background: var(--straw); }
+        .eyebrow.center-eye { justify-content: center; }
+        .eyebrow.center-eye::before { display: none; }
+
+        .slide-hero {
+            font-size: clamp(2.2em, 4.5vw, 4.5em);
+            line-height: 0.92;
+            margin-bottom: 0.18em;
+            text-align: center;
         }
 
-        .text-sage-lt {
-            color: var(--sage-lt);
+        .slide-h2 {
+            font-size: clamp(1.6em, 3vw, 2.6em);
+            margin-bottom: 10px;
         }
 
-        .text-straw {
-            color: var(--straw);
+        .lede {
+            font-size: 0.62em;
+            color: rgba(242, 237, 228, 0.65);
+            line-height: 1.55;
+            max-width: 88%;
+            margin-bottom: 0;
+            font-weight: 300;
         }
 
-        .text-straw-lt {
-            color: var(--straw-lt);
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
         }
 
+        /* ── Glow Blobs ──────────────────────────────────────────────────────── */
         .glow-a {
             position: absolute;
-            width: 700px;
-            height: 500px;
-            background: radial-gradient(ellipse, rgba(106, 158, 72, 0.15) 0%, transparent 65%);
-            top: -150px;
-            right: -150px;
-            pointer-events: none;
-            z-index: -1;
+            width: 700px; height: 500px;
+            background: radial-gradient(ellipse, rgba(106, 158, 72, 0.13) 0%, transparent 65%);
+            top: -150px; right: -150px;
+            pointer-events: none; z-index: -1;
         }
 
         .glow-b {
             position: absolute;
-            width: 500px;
-            height: 400px;
-            background: radial-gradient(ellipse, rgba(201, 152, 58, 0.1) 0%, transparent 65%);
-            bottom: -100px;
-            left: -100px;
-            pointer-events: none;
-            z-index: -1;
+            width: 500px; height: 400px;
+            background: radial-gradient(ellipse, rgba(201, 152, 58, 0.09) 0%, transparent 65%);
+            bottom: -100px; left: -100px;
+            pointer-events: none; z-index: -1;
         }
 
-        /* Grids & Cards */
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-top: 40px;
-        }
-
-        .grid-4 {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-top: 40px;
-        }
-
+        /* ── Cards ───────────────────────────────────────────────────────────── */
         .dark-card {
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 8px;
-            padding: 28px 24px;
+            padding: 24px 22px;
         }
 
         .dark-card-highlight {
-            background: rgba(106, 158, 72, 0.08);
-            border-color: rgba(106, 158, 72, 0.25);
+            background: rgba(106, 158, 72, 0.07);
+            border-color: rgba(106, 158, 72, 0.22);
         }
 
-        .reveal .slide-title-hero {
-            font-size: 4em;
-            line-height: 0.9;
-            margin-bottom: 0.2em;
-            text-align: center;
+        .dark-card-gold {
+            background: rgba(201, 152, 58, 0.06);
+            border-color: rgba(201, 152, 58, 0.25);
         }
 
-        .reveal .slide-subtitle {
-            font-size: 1.2rem;
-            color: rgba(242, 237, 228, 0.6);
-            text-align: center;
-            max-width: 80%;
-            margin: 0 auto;
-        }
+        /* ── Grids ───────────────────────────────────────────────────────────── */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 
-        .badge-row {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 40px;
-        }
-
+        /* ── Badges ──────────────────────────────────────────────────────────── */
         .badge {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 0.4em;
-            letter-spacing: 0.16em;
+            font-size: 0.38em;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
-            padding: 6px 14px;
+            padding: 5px 12px;
             border-radius: 3px;
         }
 
         .badge-sage {
-            background: rgba(106, 158, 72, 0.15);
+            background: rgba(106, 158, 72, 0.14);
             color: var(--sage-lt);
-            border: 1px solid rgba(106, 158, 72, 0.3);
+            border: 1px solid rgba(106, 158, 72, 0.28);
         }
 
         .badge-straw {
-            background: rgba(201, 152, 58, 0.12);
+            background: rgba(201, 152, 58, 0.11);
             color: var(--straw-lt);
-            border: 1px solid rgba(201, 152, 58, 0.28);
+            border: 1px solid rgba(201, 152, 58, 0.26);
         }
 
-        /* Custom slide backgrounds */
-        .reveal .slide-background {
-            background-color: var(--dark-bg);
+        .badge-mist {
+            background: rgba(140, 128, 112, 0.12);
+            color: rgba(242, 237, 228, 0.55);
+            border: 1px solid rgba(140, 128, 112, 0.2);
         }
 
-        .tier-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 0.5em;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            padding: 4px 10px;
-            border-radius: 2px;
-            margin-bottom: 14px;
+        .badge-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 30px;
         }
 
-        .tb-1 {
-            background: rgba(106, 158, 72, 0.1);
-            color: var(--sage-lt);
-            border: 1px solid rgba(106, 158, 72, 0.3);
-        }
-
-        .tb-2 {
-            background: rgba(201, 152, 58, 0.12);
-            color: var(--straw-lt);
-            border: 1px solid rgba(201, 152, 58, 0.28);
-        }
-
-        ul.tier-list {
-            list-style: none;
-            margin-left: 0;
-            padding-left: 0;
-        }
-
-        ul.tier-list li {
-            font-size: 0.6em;
-            color: rgba(242, 237, 228, 0.7);
-            margin-bottom: 8px;
-            position: relative;
-            padding-left: 20px;
-        }
-
-        ul.tier-list li::before {
-            content: '—';
-            position: absolute;
-            left: 0;
-            color: var(--sage);
-        }
-
-        /* Static Team Cards Collage */
+        /* ── Team Cards ──────────────────────────────────────────────────────── */
         .static-team-card {
             background: rgba(255, 255, 255, 0.05);
             background-size: cover;
             background-position: center;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            width: 160px;
-            height: 220px;
+            width: 152px;
+            height: 210px;
             position: relative;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
-            margin: 0 -12px;
-            /* Overlap cards horizontally */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+            margin: 0 -10px;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            /* push text to bottom */
             overflow: hidden;
-            /* rounded corners fix */
+            padding: 10px;
         }
 
         .static-team-card::after {
             content: '';
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 50%;
-            background: linear-gradient(to top, rgba(19, 16, 8, 1) 0%, transparent 100%);
+            bottom: 0; left: 0; right: 0;
+            height: 55%;
+            background: linear-gradient(to top, rgba(19, 16, 8, 0.95) 0%, transparent 100%);
             z-index: 1;
         }
 
-        .static-team-card>span {
+        .static-team-card > span {
             position: relative;
             z-index: 2;
-            /* keep text above gradient */
+        }
+
+        /* ── Pipeline Arrows ─────────────────────────────────────────────────── */
+        .pipeline-wrap {
+            display: flex;
+            gap: 0;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 14px;
+        }
+
+        .pipe-step {
+            flex: 1;
+            padding: 16px 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .pipe-step:last-child { border-right: none; }
+
+        .pipe-step.highlighted {
+            background: rgba(106, 158, 72, 0.06);
+        }
+
+        .pipe-step.gold-step {
+            background: rgba(201, 152, 58, 0.05);
+        }
+
+        .pipe-arrow {
+            position: absolute;
+            right: -11px; top: 50%;
+            width: 22px; height: 22px;
+            background: var(--dark-bg);
+            transform: translateY(-50%) rotate(45deg);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 2;
+        }
+
+        .pipe-label {
+            font-size: 0.38em;
+            color: var(--mist);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .pipe-title {
+            font-size: 0.7em;
+            font-weight: 700;
+            color: var(--bg);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .pipe-body {
+            font-size: 0.42em;
+            color: rgba(242, 237, 228, 0.5);
+            line-height: 1.35;
+            margin: 0;
+        }
+
+        /* ── Stat Cards ──────────────────────────────────────────────────────── */
+        .stat-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 8px;
+            padding: 18px 16px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6em;
+            font-weight: 700;
+            color: var(--sage-lt);
+            display: block;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.42em;
+            color: var(--mist);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* ── Tier Columns ────────────────────────────────────────────────────── */
+        .tier-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .tier-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .tier-body {
+            padding: 16px 20px;
+            flex-grow: 1;
+        }
+
+        .tier-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2em;
+            font-weight: 700;
+            line-height: 1;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .tier-accuracy {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .you-are-here {
+            display: inline-block;
+            font-size: 0.34em;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 2px;
+            background: rgba(106, 158, 72, 0.2);
+            color: var(--sage-lt);
+            border: 1px solid rgba(106, 158, 72, 0.4);
+            margin-top: 6px;
+        }
+
+        ul.tier-list {
+            list-style: none;
+            margin: 0; padding: 0;
+        }
+
+        ul.tier-list li {
+            font-size: 0.52em;
+            color: rgba(242, 237, 228, 0.65);
+            margin-bottom: 7px;
+            padding-left: 18px;
+            position: relative;
+            line-height: 1.3;
+        }
+
+        ul.tier-list li::before {
+            content: '—';
+            position: absolute; left: 0;
+            color: var(--sage);
+        }
+
+        /* ── ROI Table ───────────────────────────────────────────────────────── */
+        .roi-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+        }
+
+        .roi-row:last-child { border-bottom: none; }
+
+        .roi-label { font-size: 0.62em; color: rgba(242, 237, 228, 0.75); }
+        .roi-value { font-size: 0.62em; font-weight: 700; }
+
+        /* ── Alert Bubble ────────────────────────────────────────────────────── */
+        .alert-bubble {
+            background: rgba(106, 158, 72, 0.1);
+            border: 1px solid rgba(106, 158, 72, 0.28);
+            border-radius: 12px 12px 12px 4px;
+            padding: 16px 18px;
+        }
+
+        /* ── Ask Cards ───────────────────────────────────────────────────────── */
+        .ask-card {
+            flex: 1;
+            border-radius: 8px;
+            padding: 26px 22px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ask-icon {
+            font-size: 0.45em;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            display: block;
+        }
+
+        .ask-title {
+            font-size: 0.9em;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--bg);
+        }
+
+        .ask-list {
+            list-style: none; margin: 0; padding: 0;
+            flex-grow: 1;
+        }
+
+        .ask-list li {
+            font-size: 0.52em;
+            color: rgba(242, 237, 228, 0.75);
+            line-height: 1.45;
+            margin-bottom: 8px;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .ask-list li::before {
+            content: '✓';
+            position: absolute; left: 0;
+            color: var(--sage-lt);
+        }
+
+        .price-badge {
+            margin-top: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55em;
+            color: var(--straw-lt);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 12px;
+        }
+
+        /* ── XAI Chain ───────────────────────────────────────────────────────── */
+        .xai-chain {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .xai-node {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 0.4em;
+            letter-spacing: 0.08em;
+            color: rgba(242, 237, 228, 0.7);
+            white-space: nowrap;
+        }
+
+        .xai-node.active {
+            background: rgba(106, 158, 72, 0.1);
+            border-color: rgba(106, 158, 72, 0.25);
+            color: var(--sage-lt);
+        }
+
+        .xai-arrow {
+            font-size: 0.4em;
+            color: var(--mist);
+        }
+
+        /* ── Onboarding Steps ────────────────────────────────────────────────── */
+        .step-card {
+            flex: 1;
+            padding: 22px 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .step-card.highlighted {
+            background: rgba(201, 152, 58, 0.07);
+            border-color: rgba(201, 152, 58, 0.28);
+        }
+
+        .step-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: block;
         }
     </style>
 </head>
@@ -305,409 +529,497 @@
     <div class="reveal">
         <div class="slides">
 
-            <!-- Slide 1: Title Card -->
-            <section class="center" data-transition="zoom" style="text-align: center;">
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 1 — Title
+            ══════════════════════════════════════════════════════════════════ -->
+            <section class="center-slide" data-transition="zoom" style="text-align: center; padding: 36px 6% !important;">
                 <div class="glow-a"></div>
                 <div class="glow-b"></div>
-                <span class="kicker" style="letter-spacing: 0.1em; color: var(--sage);">Cornell Digital Ag
-                    Hackathon</span>
-                <h1 class="slide-title-hero" style="font-size: 4.5em; margin-bottom: 0.1em; color: var(--bg);">Tauron
-                </h1>
-                <p class="slide-subtitle" style="font-size: 0.9em; max-width: 95%; margin-bottom: 35px;">Graph Neural
-                    Network early
-                    warning system for dairy herd disease — Oriented on accessible AI for family farms.</p>
+
+                <span style="font-size: 0.38em; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sage); display: block; margin-bottom: 18px;">
+                    Cornell Digital Ag Hackathon · 2026
+                </span>
+
+                <h1 class="slide-hero" style="color: var(--bg); margin-bottom: 12px;">Tauron</h1>
+
+                <p style="font-size: 0.7em; color: rgba(242,237,228,0.6); max-width: 70%; margin: 0 auto 28px; line-height: 1.45;">
+                    Graph Neural Network early warning system for dairy herd disease —<br>
+                    <em style="color: rgba(242,237,228,0.45);">accessible AI for family farms.</em>
+                </p>
 
                 <div class="fragment fade-in"
-                    style="display: flex; justify-content: center; align-items: center; margin-top: 40px; margin-bottom: 20px;">
+                    style="display: flex; justify-content: center; align-items: center; margin-top: 10px;">
                     <div class="static-team-card"
                         style="z-index: 1; transform: rotate(-8deg) translateY(20px); background-image: url('./adi.jpg');">
-                        <span
-                            style="display:block; font-size: 0.85em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                            Adi</span>
-                        <span
-                            style="display:block; font-family: monospace; font-size: 0.5em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
-                            ML Engineer</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Adi</span>
+                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML Engineer</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 2; transform: rotate(-4deg) translateY(5px); background-image: url('./suchit.jpg');">
-                        <span
-                            style="display:block; font-size: 0.85em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                            Suchit</span>
-                        <span
-                            style="display:block; font-family: monospace; font-size: 0.5em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
-                            Frontend</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Suchit</span>
+                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
                     </div>
                     <div class="static-team-card"
-                        style="z-index: 3; transform: rotate(-1deg) translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.8); background-image: url('./ari.jpg');">
-                        <span
-                            style="display:block; font-size: 0.85em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                            Aritro</span>
-                        <span
-                            style="display:block; font-family: monospace; font-size: 0.5em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
-                            ML Engineer</span>
+                        style="z-index: 3; transform: rotate(-1deg) translateY(-5px); box-shadow: 0 18px 36px rgba(0,0,0,0.85); background-image: url('./ari.jpg');">
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Aritro</span>
+                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML Engineer</span>
                     </div>
                     <div class="static-team-card"
-                        style="z-index: 4; transform: rotate(1deg) translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.8); background-image: url('./krish.jpg');">
-                        <span
-                            style="display:block; font-size: 0.85em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                            Krish</span>
-                        <span
-                            style="display:block; font-family: monospace; font-size: 0.5em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
-                            Backend</span>
+                        style="z-index: 4; transform: rotate(1deg) translateY(-5px); box-shadow: 0 18px 36px rgba(0,0,0,0.85); background-image: url('./krish.jpg');">
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Krish</span>
+                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 2; transform: rotate(4deg) translateY(5px); background-image: url('./vik.png');">
-                        <span
-                            style="display:block; font-size: 0.85em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                            Vikram</span>
-                        <span
-                            style="display:block; font-family: monospace; font-size: 0.5em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
-                            Backend</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Vikram</span>
+                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 1; transform: rotate(8deg) translateY(20px); background-image: url('./connor.jpg');">
-                        <span
-                            style="display:block; font-size: 0.85em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                            Connor</span>
-                        <span
-                            style="display:block; font-family: monospace; font-size: 0.5em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
-                            Frontend</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Connor</span>
+                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
                     </div>
                 </div>
             </section>
 
-            <!-- Slide 2: The Core Problem -->
-            <section data-transition="slide" style="padding: 0 5%;">
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 2 — The Core Problem
+            ══════════════════════════════════════════════════════════════════ -->
+            <section data-transition="slide">
                 <span class="eyebrow">The Core Problem</span>
-                <h2>The True Cost of Disease</h2>
-                <p class="slide-subtitle"
-                    style="text-align: left; margin: 0; max-width: 90%; color: rgba(242,237,228,0.7);">A sick cow costs
-                    money in three ways: lost milk, treatment, and spread risk. Limiting disease spread is key to
-                    long-term savings.</p>
+                <h2 class="slide-h2">The True Cost of Disease</h2>
+                <p class="lede" style="margin-bottom: 18px;">A sick cow costs money three ways: lost milk, treatment, and spread risk. The spread risk is the part no farmer can track manually.</p>
 
-                <div class="grid-3"
-                    style="margin-top: 30px; align-items: stretch; transform: scale(0.92); transform-origin: top center; width: 108%; margin-left: -4%;">
-                    <div class="dark-card fragment fade-up" data-fragment-index="1"
-                        style="display:flex; flex-direction:column;">
-                        <span style="font-size:2em; display:block; margin-bottom:10px;">🐄</span>
-                        <h3 style="font-size: 1.2em; color: var(--straw-lt);">Mastitis</h3>
-                        <p style="font-size: 0.6em; color: rgba(242,237,228,0.5); flex-grow:1; margin-top: 10px;">The
-                            most costly. <strong>$200–$400 per case</strong> in dumped milk & labor. Highly contagious
-                            through shared equipment.</p>
-                        <div
-                            style="margin-top: 20px; font-size: 0.55em; color: var(--sage-lt); padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                            -48h warning = halving discard duration
+                <div class="grid-3" style="margin-top: 16px; align-items: stretch;">
+                    <div class="dark-card fragment fade-up" data-fragment-index="1" style="display:flex; flex-direction:column;">
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace;">Mastitis</span>
+                            <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$200–$400</span>
+                            <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
+                        </div>
+                        <p style="font-size: 0.56em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.45;">Most costly. Dumped milk &amp; labor. Highly contagious through shared milking equipment.</p>
+                        <div style="margin-top: 16px; font-size: 0.5em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07);">
+                            48h warning → halve discard duration
                         </div>
                     </div>
 
-                    <div class="dark-card fragment fade-up" data-fragment-index="2"
-                        style="display:flex; flex-direction:column;">
-                        <span style="font-size:2em; display:block; margin-bottom:10px;">🫁</span>
-                        <h3 style="font-size: 1.1em; color: var(--straw-lt); margin: 0;">BRD</h3>
-                        <span
-                            style="font-size: 0.45em; color: var(--mist); display: block; margin-bottom: 2px; line-height: 1.1;">(Bovine
-                            Respiratory Disease)</span>
-                        <p style="font-size: 0.6em; color: rgba(242,237,228,0.5); flex-grow:1; margin-top: 5px;">Masked
-                            symptoms. <strong>$150–$300+ per case</strong>. Prolonged treatments risk permanent lung
-                            damage and production drops.</p>
-                        <div
-                            style="margin-top: 20px; font-size: 0.55em; color: var(--sage-lt); padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                            -48h warning = stopping pen outbreaks
+                    <div class="dark-card fragment fade-up" data-fragment-index="2" style="display:flex; flex-direction:column;">
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 2px; font-family: 'JetBrains Mono', monospace;">BRD</span>
+                            <span style="font-size: 0.36em; color: var(--mist); display: block; margin-bottom: 6px;">Bovine Respiratory Disease</span>
+                            <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$150–$300</span>
+                            <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
+                        </div>
+                        <p style="font-size: 0.56em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.45;">Masked symptoms until damage is done. Prolonged treatment risks permanent lung damage and permanent production drops.</p>
+                        <div style="margin-top: 16px; font-size: 0.5em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07);">
+                            48h warning → stop pen outbreaks
                         </div>
                     </div>
 
-                    <div class="dark-card fragment fade-up" data-fragment-index="3"
-                        style="display:flex; flex-direction:column;">
-                        <span style="font-size:2em; display:block; margin-bottom:10px;">🦿</span>
-                        <h3 style="font-size: 1.2em; color: var(--straw-lt);">Lameness</h3>
-                        <p style="font-size: 0.6em; color: rgba(242,237,228,0.5); flex-grow:1; margin-top: 10px;">
-                            Chronically under-diagnosed by eye. <strong>$300–$500 per case</strong> through milk loss,
-                            reproductive failure, and culling.</p>
-                        <div
-                            style="margin-top: 20px; font-size: 0.55em; color: var(--sage-lt); padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                            -48h warning = catching before culling
+                    <div class="dark-card fragment fade-up" data-fragment-index="3" style="display:flex; flex-direction:column;">
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace;">Lameness</span>
+                            <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$300–$500</span>
+                            <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
+                        </div>
+                        <p style="font-size: 0.56em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.45;">Chronically under-diagnosed by eye. Hidden cost through milk loss, reproductive failure, and early culling.</p>
+                        <div style="margin-top: 16px; font-size: 0.5em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07);">
+                            48h warning → catch before culling
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Slide 3: ROI -->
-            <section data-transition="slide" style="padding: 0 5%;">
-                <span class="eyebrow" data-id="roi-eyebrow">The Value Prop</span>
-                <h2 data-id="roi-title">Why a Farmer Pays</h2>
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 3 — The ROI Case
+            ══════════════════════════════════════════════════════════════════ -->
+            <section data-transition="slide">
+                <span class="eyebrow gold">The Value Prop</span>
+                <h2 class="slide-h2">Why a Farmer Pays</h2>
 
-                <div
-                    style="display:flex; gap: 40px; margin-top: 20px; align-items: stretch; transform: scale(0.88); transform-origin: top center; width: 112%; margin-left: -6%;">
-                    <div style="flex: 1.2;" class="fragment fade-right">
-                        <div class="dark-card dark-card-highlight" style="height: 100%;">
-                            <h4
-                                style="font-size: 0.8em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 20px;">
-                                The ROI Math (60-Cow Herd)</h4>
+                <div style="display:flex; gap: 28px; margin-top: 18px; align-items: stretch;">
 
-                            <div
-                                style="display:flex; justify-content:space-between; margin-bottom: 15px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 10px;">
-                                <span style="font-size: 0.8em; color:rgba(242,237,228,0.8);">Savings from early
-                                    detection:</span>
-                                <span style="font-size: 0.8em; color:var(--sage-lt); font-weight:bold;">$4,000 – $9,000
-                                    /yr</span>
+                    <div style="flex: 1.3;" class="fragment fade-right">
+                        <div class="dark-card dark-card-highlight" style="height: 100%; box-sizing: border-box;">
+                            <h4 style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 18px; font-weight: 400;">The ROI Math — 60-Cow Herd</h4>
+
+                            <div class="roi-row">
+                                <span class="roi-label">Savings from early detection</span>
+                                <span class="roi-value" style="color: var(--sage-lt);">$4,000 – $9,000 /yr</span>
+                            </div>
+                            <div class="roi-row">
+                                <span class="roi-label">Tauron subscription cost</span>
+                                <span class="roi-value" style="color: var(--straw-lt);">Under $1,000 /yr</span>
+                            </div>
+                            <div class="roi-row" style="border-bottom: none; padding-top: 14px;">
+                                <span class="roi-label" style="font-weight: 700; color: var(--bg);">Net ROI</span>
+                                <span class="roi-value" style="color: var(--sage-lt); font-size: 0.8em;">4–9×</span>
                             </div>
 
-                            <div style="display:flex; justify-content:space-between; margin-bottom: 25px;">
-                                <span style="font-size: 0.8em; color:rgba(242,237,228,0.8);">Tauron SaaS
-                                    Subscription:</span>
-                                <span style="font-size: 0.8em; color:var(--straw-lt); font-weight:bold;">Under $1,000
-                                    /yr</span>
-                            </div>
-
-                            <p
-                                style="font-size: 0.6em; color: rgba(242,237,228,0.6); line-height: 1.6; margin-top: 20px;">
-                                It's a 4-9x ROI. But the key argument isn't just financial. It is <strong
-                                    style="color:var(--bg);">structurally impossible</strong> for a farmer to mentally
-                                track 60 cows' relational health patterns—watching subtle 3-day milk declines combined
-                                with shared feed bunk histories. <br><br>
-                                <span style="color:var(--sage-lt);">Tauron does what a human simply cannot.</span>
+                            <p style="font-size: 0.56em; color: rgba(242,237,228,0.55); line-height: 1.55; margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px;">
+                                But the core argument isn't just financial. It is <strong style="color:var(--bg);">structurally impossible</strong> for a farmer to track 60 cows' relational health — subtle 3-day milk declines combined with shared feed bunk histories across a 2-acre barn.
+                                <br><br>
+                                <span style="color: var(--sage-lt);">Tauron does what a human simply cannot.</span>
                             </p>
                         </div>
                     </div>
 
-                    <div style="flex: 0.8; display:flex; flex-direction:column; gap: 20px;">
-                        <div class="dark-card fragment fade-left" style="flex:1;">
-                            <h4
-                                style="font-size: 0.7em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px;">
-                                Antibiotic Stewardship</h4>
-                            <p style="font-size: 0.6em; color: rgba(242,237,228,0.7); line-height: 1.5;">Early detection
-                                means targeted, earlier treatment. Less antibiotic volume used overall. Crucial for
-                                regulator compliance and co-op price premiums.</p>
+                    <div style="flex: 0.85; display:flex; flex-direction:column; gap: 16px;">
+                        <div class="dark-card fragment fade-left" style="flex: 1;">
+                            <h4 style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">Antibiotic Stewardship</h4>
+                            <p style="font-size: 0.56em; color: rgba(242,237,228,0.65); line-height: 1.5; margin: 0;">Early detection → targeted treatment → less antibiotic volume. Crucial for regulator compliance and co-op price premiums. AMR pressure is only growing.</p>
                         </div>
-                        <div class="dark-card fragment fade-left" style="flex:1; border-color: var(--sage);">
-                            <h4
-                                style="font-size: 0.7em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px;">
-                                Peace of Mind</h4>
-                            <p style="font-size: 0.6em; color: rgba(242,237,228,0.7); line-height: 1.5;">Hours of early
-                                warning lead time. Faster, trusted decisions driven by explainable AI reasons, not
-                                black-box scores.</p>
+                        <div class="dark-card fragment fade-left" style="flex: 1; border-color: rgba(106,158,72,0.25);">
+                            <h4 style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">Peace of Mind</h4>
+                            <p style="font-size: 0.56em; color: rgba(242,237,228,0.65); line-height: 1.5; margin: 0;">Hours of early warning lead time. Decisions driven by explainable AI evidence — not a black-box risk score no one trusts.</p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Slide 4: Philosophy & Tiers (Condensed) -->
-            <section data-auto-animate data-transition="convex" style="padding: 0 5%;">
-                <span class="eyebrow" data-id="tier-eyebrow">Data Integration</span>
-                <h2 data-id="tier-title">Meets Farmers Where They Are</h2>
-                <p class="slide-subtitle"
-                    style="text-align: left; margin: 0; max-width: 90%; color: rgba(242,237,228,0.7);">No new hardware.
-                    No new habits. A single weekly CSV export of existing parlor records is enough to start.</p>
-
-                <div class="grid-2"
-                    style="margin-top: 20px; display: flex; gap: 40px; align-items: stretch; justify-content: center;">
-
-                    <div class="dark-card fragment fade-right Custom-fragment" data-id="tier-1"
-                        style="flex: 1; display:flex; flex-direction:column; align-items:center; text-align:center; padding: 25px 30px;">
-                        <span style="font-size:2.2em; display:block; margin-bottom:10px;">🐄</span>
-                        <h3 style="font-size: 1.4em; color: var(--straw-lt); margin-bottom:0;">Tie-Stall Farms</h3>
-                        <p
-                            style="font-size: 0.65em; color: rgba(242,237,228,0.7); margin-top: 10px; line-height:1.5; flex-grow:1;">
-                            Cows remain in assigned stalls. Physical contact networks are entirely static and dictated
-                            by manual stall assignment records alongside daily milk weights.
-                        </p>
-                    </div>
-
-                    <div class="dark-card dark-card-highlight fragment fade-left Custom-fragment" data-id="tier-2"
-                        style="flex: 1; display:flex; flex-direction:column; align-items:center; text-align:center; padding: 25px 30px;">
-                        <span style="font-size:2.2em; display:block; margin-bottom:10px;">🚶</span>
-                        <h3 style="font-size: 1.4em; color: var(--sage-lt); margin-bottom:0;">Free-Stall Farms</h3>
-                        <p
-                            style="font-size: 0.65em; color: rgba(242,237,228,0.7); margin-top: 10px; line-height:1.5; flex-grow:1;">
-                            Cows roam freely within designated pens. The network must continually infer dynamic, dense
-                            proximity graphs based on shared feeding bunks, water troughs, and milking order.
-                        </p>
-                    </div>
-
-                </div>
-            </section>
-
-            <!-- Slide 5: The Tauron Pipeline (Condensed Architecture & GNN) -->
-            <section data-transition="slide" style="padding: 0 5%;">
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 4 — Architecture: How Tauron Works
+            ══════════════════════════════════════════════════════════════════ -->
+            <section data-transition="slide">
                 <span class="eyebrow">Architecture</span>
-                <h2>How Tauron Works</h2>
+                <h2 class="slide-h2">How Tauron Works</h2>
 
-                <div
-                    style="display: flex; gap: 0; margin-top: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden;">
-                    <div class="fragment fade-right" data-fragment-index="1"
-                        style="flex: 1.2; padding: 10px; background: rgba(255,255,255,0.02); border-right: 1px solid rgba(255,255,255,0.05); position:relative;">
-                        <h4 style="font-size:0.8em; margin-bottom:5px;">1. Ingestion</h4>
-                        <p style="font-size:0.45em; color:var(--mist); margin:0; line-height: 1.3;">Standardize raw CSV
-                            &
-                            API sensor streams.</p>
-                        <div
-                            style="position: absolute; right: -15px; top: 50%; width: 30px; height: 30px; background: var(--dark-bg); transform: translateY(-50%) rotate(45deg); border-top: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1); z-index: 2;">
-                        </div>
+                <div class="pipeline-wrap">
+                    <div class="pipe-step fragment fade-right" data-fragment-index="1">
+                        <div class="pipe-arrow"></div>
+                        <span class="pipe-label">Step 1</span>
+                        <span class="pipe-title">Ingestion</span>
+                        <p class="pipe-body">CSV upload, voice entry, or REST API. Standardized sensor streams per cow.</p>
                     </div>
-                    <div class="fragment fade-right" data-fragment-index="2"
-                        style="flex: 1.4; padding: 10px; background: rgba(255,255,255,0.04); border-right: 1px solid rgba(255,255,255,0.05); position:relative; z-index: 1;">
-                        <h4 style="font-size:0.8em; margin-bottom:5px;">2. Graph Modeling</h4>
-                        <p style="font-size:0.45em; color:var(--mist); margin:0; line-height: 1.3;">Translate physical
-                            behaviors (shared pens & bunks) into mathematical networks.</p>
-                        <div
-                            style="position: absolute; right: -15px; top: 50%; width: 30px; height: 30px; background: var(--dark-bg); transform: translateY(-50%) rotate(45deg); border-top: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1); z-index: 2;">
-                        </div>
+                    <div class="pipe-step fragment fade-right" data-fragment-index="2">
+                        <div class="pipe-arrow"></div>
+                        <span class="pipe-label">Step 2</span>
+                        <span class="pipe-title">Graph Build</span>
+                        <p class="pipe-body">Pen assignments + feeding logs → PyG contact graph. Edges encode disease transmission probability.</p>
                     </div>
-                    <div class="fragment fade-right" data-fragment-index="3"
-                        style="flex: 1.5; padding: 10px; background: rgba(106,158,72,0.05); border-right: 1px solid rgba(255,255,255,0.05); position:relative; z-index: 1;">
-                        <h4 style="font-size:0.8em; margin-bottom:5px; color:var(--sage-lt);">3. GNN Inference</h4>
-                        <p style="font-size:0.45em; color:var(--mist); margin:0; line-height: 1.3;">GraphSAGE+GRU
-                            spatio-temporal layers monitor 7-day windows for 48h early warnings.</p>
-                        <div
-                            style="position: absolute; right: -15px; top: 50%; width: 30px; height: 30px; background: var(--dark-bg); transform: translateY(-50%) rotate(45deg); border-top: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1); z-index: 2;">
-                        </div>
+                    <div class="pipe-step highlighted fragment fade-right" data-fragment-index="3">
+                        <div class="pipe-arrow"></div>
+                        <span class="pipe-label" style="color: var(--sage);">Step 3</span>
+                        <span class="pipe-title" style="color: var(--sage-lt);">GNN Inference</span>
+                        <p class="pipe-body">GraphSAGE + GRU over 7-day windows. Outputs mastitis / BRD / lameness risk per node.</p>
                     </div>
-                    <div class="fragment fade-right" data-fragment-index="4"
-                        style="flex: 1.2; padding: 10px; background: rgba(201,152,58,0.05); z-index: 1;">
-                        <h4 style="font-size:0.8em; margin-bottom:5px; color:var(--straw-lt);">4. Alerting</h4>
-                        <p style="font-size:0.45em; color:var(--mist); margin:0; line-height: 1.3;">Extract critical
-                            evidence and dispatch the LLM warning.</p>
+                    <div class="pipe-step gold-step fragment fade-right" data-fragment-index="4">
+                        <span class="pipe-label" style="color: var(--straw);">Step 4</span>
+                        <span class="pipe-title" style="color: var(--straw-lt);">LLM Alert</span>
+                        <p class="pipe-body">Gradient XAI extracts evidence. Ollama → Claude → template generates farmer-readable directive.</p>
                     </div>
                 </div>
 
-                <div class="fragment fade-up" style="margin-top: 15px; display:flex; gap: 30px;">
-                    <div style="flex:1;">
-                        <p style="font-size: 0.65em; color: rgba(242,237,228,0.8); line-height: 1.3;">
-                            <strong>No proximity sensors needed.</strong> The pipeline synthesizes everyday barn layout
-                            and feeding logs to
-                            infer accurate contact networks without expensive hardware.
-                        </p>
-                        <p style="font-size: 0.65em; color: rgba(242,237,228,0.8); line-height: 1.3; margin-top:10px;">
-                            <strong>One Multi-Head Model.</strong> Trained globally on Wageningen SensOor profiles to
-                            detect distinct disease vectors accurately from a single baseline graph.
-                        </p>
+                <div class="fragment fade-up" style="display: flex; gap: 22px; margin-top: 18px; align-items: stretch;">
+                    <div style="flex: 1; font-size: 0.6em; color: rgba(242,237,228,0.8); line-height: 1.45;">
+                        <strong>No proximity sensors needed.</strong> The pipeline synthesizes everyday barn layout and feeding logs to infer contact networks without expensive hardware.
                     </div>
-                    <div
-                        style="flex:1; padding: 10px 15px; border-left: 3px solid var(--straw); background: rgba(201,152,58,0.05); font-size:0.6em; color: rgba(242,237,228,0.8); display:flex; align-items:center;">
-                        <div>
-                            <strong
-                                style="color:var(--straw-lt); font-size:1.1em; display:block; margin-bottom:5px;">The
-                                Key Innovation</strong>
-                            When Cow A's health signals degrade, her neighbors' risk scores update through message
-                            passing — even if they look fine right now.
+                    <div style="flex: 1; padding: 14px 16px; border-left: 3px solid var(--straw); background: rgba(201,152,58,0.05); font-size: 0.6em; color: rgba(242,237,228,0.8); line-height: 1.45; border-radius: 0 4px 4px 0;">
+                        <strong style="color: var(--straw-lt); display: block; margin-bottom: 5px;">The Key Innovation</strong>
+                        When Cow A's health degrades, her neighbors' risk scores update through message passing — even if they look fine right now.
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 5 — Technical Moat: The GNN
+            ══════════════════════════════════════════════════════════════════ -->
+            <section data-transition="convex">
+                <span class="eyebrow">Technical Moat</span>
+                <h2 class="slide-h2">The GNN Under the Hood</h2>
+
+                <div style="display: flex; gap: 24px; margin-top: 18px; align-items: flex-start;">
+
+                    <!-- Left: Architecture text diagram -->
+                    <div style="flex: 1.1;" class="fragment fade-right">
+                        <div class="dark-card" style="font-family: 'JetBrains Mono', monospace; font-size: 0.48em; line-height: 2; color: rgba(242,237,228,0.65); border-left: 3px solid var(--sage);">
+                            <span style="color: var(--mist);">// TauronGNN · 120K params · 50 epochs</span><br>
+                            <span style="color: var(--sage-lt);">Input</span>
+                            <span style="color: var(--mist);">     7 features × 9 timesteps / node</span><br>
+                            <span style="color: rgba(242,237,228,0.3);">  ↓</span><br>
+                            <span style="color: var(--sage-lt);">GRU</span>
+                            <span style="color: var(--mist);">      temporal encoder (hidden=64)</span><br>
+                            <span style="color: rgba(242,237,228,0.3);">  ↓</span><br>
+                            <span style="color: var(--sage-lt);">SAGEConv</span>
+                            <span style="color: var(--mist);">  128→64 · ReLU</span><br>
+                            <span style="color: rgba(242,237,228,0.3);">  ↓</span><br>
+                            <span style="color: var(--sage-lt);">SAGEConv</span>
+                            <span style="color: var(--mist);">   64→32 · Dropout 0.3</span><br>
+                            <span style="color: rgba(242,237,228,0.3);">  ↓</span><br>
+                            <span style="color: var(--straw-lt);">Sigmoid</span>
+                            <span style="color: var(--mist);">   mastitis · BRD · lameness</span>
+                        </div>
+
+                        <div class="xai-chain fragment fade-up" data-fragment-index="2">
+                            <div class="xai-node active">Gradient XAI</div>
+                            <span class="xai-arrow">→</span>
+                            <div class="xai-node active">feature_mask</div>
+                            <span class="xai-arrow">+</span>
+                            <div class="xai-node active">edge_mask</div>
+                            <span class="xai-arrow">→</span>
+                            <div class="xai-node">Ollama Mistral</div>
+                            <span class="xai-arrow">→</span>
+                            <div class="xai-node">Plain alert</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: stat cards -->
+                    <div style="flex: 0.9; display: flex; flex-direction: column; gap: 12px;" class="fragment fade-left">
+                        <div class="grid-2" style="gap: 12px;">
+                            <div class="stat-card">
+                                <span class="stat-number">120K</span>
+                                <span class="stat-label">Parameters</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-number">475KB</span>
+                                <span class="stat-label">Model weights</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-number">&lt;2s</span>
+                                <span class="stat-label">Inference time</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-number">47/47</span>
+                                <span class="stat-label">Tests passing</span>
+                            </div>
+                        </div>
+
+                        <div class="dark-card dark-card-highlight fragment fade-up" data-fragment-index="3" style="margin-top: 4px;">
+                            <p style="font-size: 0.52em; color: rgba(242,237,228,0.8); line-height: 1.5; margin: 0;">
+                                <strong style="color: var(--sage-lt);">Data sovereign by design.</strong><br>
+                                Ollama Mistral-7B runs locally on the farm server. No cow health data leaves the barn.
+                                Claude API is a cloud fallback only.
+                            </p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Slide 6: XAI & UX (Condensed 6am in Barn) -->
-            <section style="padding: 0 5%;">
-                <span class="eyebrow">Trust & Action</span>
-                <h2>6am in a Barn</h2>
-                <p class="slide-subtitle"
-                    style="font-size: 0.8em; text-align: left; margin: 0; max-width: 90%; color: rgba(242,237,228,0.7);">
-                    We don't show
-                    farmers neural networks. We show them the specific evidence and clear actions.</p>
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 6 — XAI & UX: 6am in a Barn
+            ══════════════════════════════════════════════════════════════════ -->
+            <section data-transition="slide">
+                <span class="eyebrow">Trust &amp; Action</span>
+                <h2 class="slide-h2">6am in a Barn</h2>
+                <p class="lede" style="margin-bottom: 16px;">We don't show farmers neural networks. We show them the specific evidence and a clear action.</p>
 
-                <div style="display:flex; gap: 20px; margin-top:15px; align-items:stretch;">
+                <div style="display:flex; gap: 20px; align-items: stretch;">
 
-                    <div style="flex: 1.2; display:flex; flex-direction:column;" class="fragment fade-right">
-                        <h4
-                            style="font-size: 0.65em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px;">
-                            Extracting the "Why"</h4>
-                        <div class="dark-card"
-                            style="padding: 15px; flex-grow:1; display:flex; flex-direction:column; justify-content:center; border-left: 3px solid var(--sage-lt);">
-                            <p
-                                style="font-size: 0.6em; color: rgba(242,237,228,0.9); margin-top:0; margin-bottom: 10px; line-height: 1.4;">
-                                Our Explainer pipeline digs into the GNN to rank the exact evidence triggering an alert:
+                    <div style="flex: 1.1; display:flex; flex-direction:column;" class="fragment fade-right">
+                        <h4 style="font-size: 0.52em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">Extracting the "Why"</h4>
+                        <div class="dark-card" style="flex-grow:1; border-left: 3px solid var(--sage-lt); display: flex; flex-direction: column; justify-content: center;">
+                            <p style="font-size: 0.56em; color: rgba(242,237,228,0.85); margin: 0 0 12px; line-height: 1.4;">
+                                Our explainer pipeline digs into the GNN to surface the exact evidence triggering an alert:
                             </p>
-                            <ul
-                                style="font-size: 0.55em; color: var(--sage-lt); padding-left: 15px; line-height:1.4; margin:0;">
-                                <li style="margin-bottom: 5px;"><strong style="color:var(--straw-lt);">Primary
-                                        Catalyst:</strong> Sharp anomaly in a specific sensor (e.g., milk yield dropping
-                                    18%).</li>
-                                <li><strong style="color:var(--straw-lt);">Hidden Transmission:</strong> Identifying
-                                    high-weight contact edges (e.g., recently sharing a feed bunk with a sick cow).</li>
+                            <ul style="font-size: 0.52em; color: var(--sage-lt); padding-left: 16px; line-height:1.45; margin:0;">
+                                <li style="margin-bottom: 8px;"><strong style="color:var(--straw-lt);">Primary catalyst:</strong> sharp anomaly in a specific sensor — e.g., milk yield dropping 18% over 3 days.</li>
+                                <li><strong style="color:var(--straw-lt);">Hidden transmission path:</strong> high-weight contact edge to a sick cow — e.g., sharing feed bunk with #31, treated Tuesday.</li>
                             </ul>
                         </div>
                     </div>
 
-                    <div style="width: 20px; display:flex; align-items:center; justify-content:center; color: var(--straw);"
-                        class="fragment zoom-in">
-                        <div style="text-align:center;">
-                            ➔<br><span
-                                style="font-size: 0.25em; text-transform:uppercase; margin-top:4px; display:block;">API</span>
-                        </div>
+                    <div style="display:flex; align-items:center; justify-content:center; padding: 0 4px;" class="fragment zoom-in">
+                        <span style="font-size: 0.7em; color: var(--straw);">→</span>
                     </div>
 
-                    <div style="flex: 1.5; display:flex; flex-direction:column;" class="fragment fade-left">
-                        <h4
-                            style="font-size: 0.65em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px;">
-                            Mobile PWA Action</h4>
-                        <div class="dark-card"
-                            style="padding: 15px; flex-grow:1; background: rgba(106,158,72,0.1); border-color: rgba(106,158,72,0.3); border-radius: 12px 12px 12px 4px;">
-                            <div
-                                style="display:flex; justify-content:space-between; margin-bottom: 10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">
-                                <span style="font-size:0.5em; color:var(--sage-lt);">98% Healthy</span>
-                                <span style="font-size:0.5em; color:var(--straw-lt);">2 Monitor</span>
-                                <span style="font-size:0.5em; color:#D64545;">1 Act Now</span>
+                    <div style="flex: 1.3; display:flex; flex-direction:column;" class="fragment fade-left">
+                        <h4 style="font-size: 0.52em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">What the Farmer Reads</h4>
+                        <div class="alert-bubble" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 10px; padding-bottom: 8px; border-bottom:1px solid rgba(255,255,255,0.08);">
+                                <span style="font-size: 0.44em; font-family: 'JetBrains Mono', monospace; color: rgba(242,237,228,0.4);">tauron · morning report</span>
+                                <div style="display: flex; gap: 10px;">
+                                    <span style="font-size:0.44em; color: var(--sage-lt);">53 OK</span>
+                                    <span style="font-size:0.44em; color: var(--straw-lt);">5 Watch</span>
+                                    <span style="font-size:0.44em; color: var(--danger);">2 Act Now</span>
+                                </div>
                             </div>
-                            <p style="font-size: 0.55em; line-height: 1.4; margin:0; color:var(--bg);">
-                                "Cow #47 is at high risk for mastitis. Her milk yield dropped 18% and she shared a feed
-                                bunk with
-                                Cow #31, who was treated Tuesday. <strong style="color:var(--straw-lt);">Isolate and
-                                    check temperature.</strong>"
+                            <p style="font-size: 0.58em; line-height: 1.5; margin: 0; color: var(--bg);">
+                                "Cow #47 is at high risk for mastitis. Her milk yield dropped 18% and she shared a feed bunk with Cow #31, who was treated Tuesday.
+                                <strong style="color: var(--straw-lt);">Isolate and check temperature.</strong>"
+                            </p>
+                            <p style="font-size: 0.4em; margin-top: 10px; color: rgba(242,237,228,0.4); font-family: 'JetBrains Mono', monospace;">
+                                Ollama Mistral-7B · local inference · data sovereign
                             </p>
                         </div>
-                        <p style="font-size: 0.45em; margin-top:8px; margin-bottom:0; color:rgba(242,237,228,0.5);">
-                            Anthropic Claude
-                            translates the math into a trusted, zero-jargon directive.</p>
                     </div>
 
                 </div>
             </section>
 
-            <!-- Slide 7: Onboarding -->
-            <section data-transition="zoom" style="padding: 0 5%; text-align:center;">
-                <span class="eyebrow" style="justify-content:center;">Getting Started</span>
-                <h2>Zero to First Alert</h2>
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 7 — Data Tier Roadmap
+            ══════════════════════════════════════════════════════════════════ -->
+            <section data-transition="convex">
+                <span class="eyebrow">Data Strategy</span>
+                <h2 class="slide-h2">Meets Farmers Where They Are</h2>
+                <p class="lede" style="margin-bottom: 18px;">No new hardware required to start. A weekly CSV export of existing parlor records is enough. Accuracy grows as data grows.</p>
 
-                <div class="badge-row"
-                    style="margin-top: 50px; display: flex; justify-content: center; gap: 20px; width: 100%;">
-                    <div class="fragment fade-up"
-                        style="flex: 1 1 0; padding: 25px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px;"
-                        data-fragment-index="1">
-                        <span
-                            style="font-size: 2em; color: var(--sage-lt); margin-bottom: 20px; display:block;">1</span>
-                        <h4 style="font-size:1em; line-height:1.2; color:var(--mist); margin-bottom:15px;">Open URL</h4>
-                        <p style="font-size: 0.6em; color:rgba(242,237,228,0.7); margin:0; line-height:1.4;">No
-                            installation or hardware. The PWA runs instantly on any phone, tablet, or desktop.</p>
+                <div style="display: flex; gap: 14px; margin-top: 6px; align-items: stretch;">
+
+                    <!-- Tier 1 -->
+                    <div class="tier-col dark-card dark-card-highlight fragment fade-up" data-fragment-index="1">
+                        <div class="tier-header">
+                            <span class="tier-num" style="color: var(--sage-lt);">Tier 1</span>
+                            <span class="tier-accuracy" style="color: var(--sage-lt);">~51% AUROC</span>
+                            <span class="you-are-here">You are here</span>
+                            <div style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.5); font-weight: 400;">Manual Records</div>
+                        </div>
+                        <div class="tier-body">
+                            <ul class="tier-list">
+                                <li>Daily milk weight CSV</li>
+                                <li>Pen assignment records</li>
+                                <li>Manual health events</li>
+                                <li>Voice observation entry</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="fragment fade-up"
-                        style="flex: 1 1 0; padding: 25px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px;"
-                        data-fragment-index="2">
-                        <span
-                            style="font-size: 2em; color: var(--sage-lt); margin-bottom: 20px; display:block;">2</span>
-                        <h4 style="font-size:1em; line-height:1.2; color:var(--mist); margin-bottom:15px;">Register Herd
-                        </h4>
-                        <p style="font-size: 0.6em; color:rgba(242,237,228,0.7); margin:0; line-height:1.4;">Map your
-                            farm layout by securely uploading existing cow IDs and pen assignments.</p>
+
+                    <!-- Arrow -->
+                    <div style="display: flex; align-items: center; color: var(--straw); font-size: 0.7em; flex-shrink: 0;">→</div>
+
+                    <!-- Tier 2 -->
+                    <div class="tier-col dark-card fragment fade-up" data-fragment-index="2">
+                        <div class="tier-header">
+                            <span class="tier-num" style="color: var(--straw-lt);">Tier 2</span>
+                            <span class="tier-accuracy" style="color: var(--straw-lt);">~74% AUROC</span>
+                            <div style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.5); font-weight: 400;">Automated Milking</div>
+                        </div>
+                        <div class="tier-body">
+                            <ul class="tier-list">
+                                <li>Real-time yield per milking</li>
+                                <li>Somatic cell count (SCC)</li>
+                                <li>Conductivity readings</li>
+                                <li>Parlor visit timestamps</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="fragment fade-up"
-                        style="flex: 1 1 0; padding: 25px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px;"
-                        data-fragment-index="3">
-                        <span
-                            style="font-size: 2em; color: var(--straw-lt); margin-bottom: 20px; display:block;">3</span>
-                        <h4 style="font-size:1em; line-height:1.2; color:var(--mist); margin-bottom:15px;">Weekly Upload
-                        </h4>
-                        <p style="font-size: 0.6em; color:rgba(242,237,228,0.7); margin:0; line-height:1.4;">Drag & drop
-                            your routine parlor milking CSV exports to sync global data.</p>
+
+                    <!-- Arrow -->
+                    <div style="display: flex; align-items: center; color: var(--straw); font-size: 0.7em; flex-shrink: 0;">→</div>
+
+                    <!-- Tier 3 -->
+                    <div class="tier-col dark-card fragment fade-up" data-fragment-index="3">
+                        <div class="tier-header">
+                            <span class="tier-num" style="color: var(--bg);">Tier 3</span>
+                            <span class="tier-accuracy" style="color: var(--bg);">~89% AUROC</span>
+                            <div style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.45); font-weight: 400;">Full Sensor Suite</div>
+                        </div>
+                        <div class="tier-body">
+                            <ul class="tier-list">
+                                <li>Ear-tag accelerometers</li>
+                                <li>Rumen bolus sensors</li>
+                                <li>Real-time activity + rumination</li>
+                                <li>Dynamic proximity graphs</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="fragment fade-up"
-                        style="flex: 1 1 0; padding: 25px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; background: rgba(201,152,58,0.08); border: 1px solid rgba(201,152,58,0.3); border-radius: 8px;"
-                        data-fragment-index="4">
-                        <span
-                            style="font-size: 2em; color: var(--straw-lt); margin-bottom: 20px; display:block;">4</span>
-                        <h4 style="font-size:1em; line-height:1.2; color:var(--straw-lt); margin-bottom:15px;">First
-                            Alert</h4>
-                        <p style="font-size: 0.6em; color:rgba(242,237,228,0.8); margin:0; line-height:1.4;">The GNN
-                            predicts incoming cases before symptoms show, proving value instantly.</p>
+                </div>
+
+                <p class="fragment fade-up" style="font-size: 0.5em; color: var(--mist); margin-top: 14px; font-style: italic;" data-fragment-index="4">
+                    Accuracy improves as farmers add data sources — creating a natural upsell path without forcing hardware spend upfront.
+                </p>
+            </section>
+
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 8 — Zero to First Alert (Onboarding)
+            ══════════════════════════════════════════════════════════════════ -->
+            <section data-transition="zoom" style="text-align: center; padding: 38px 6% !important;">
+                <span class="eyebrow center-eye">Getting Started</span>
+                <h2 class="slide-h2" style="text-align: center; margin-bottom: 12px;">Zero to First Alert</h2>
+                <p style="font-size: 0.56em; color: rgba(242,237,228,0.5); text-align: center; margin-bottom: 28px;">No installation. No hardware. Open a URL — get actionable intelligence.</p>
+
+                <div style="display: flex; gap: 16px; margin-top: 8px;">
+                    <div class="step-card fragment fade-up" data-fragment-index="1">
+                        <span class="step-num" style="color: var(--sage-lt);">1</span>
+                        <h4 style="font-size: 0.75em; color: var(--mist); margin-bottom: 10px; font-weight: 400;">Open URL</h4>
+                        <p style="font-size: 0.54em; color:rgba(242,237,228,0.65); margin:0; line-height:1.45;">PWA runs instantly on any phone, tablet, or desktop. No install required.</p>
                     </div>
+                    <div class="step-card fragment fade-up" data-fragment-index="2">
+                        <span class="step-num" style="color: var(--sage-lt);">2</span>
+                        <h4 style="font-size: 0.75em; color: var(--mist); margin-bottom: 10px; font-weight: 400;">Register Herd</h4>
+                        <p style="font-size: 0.54em; color:rgba(242,237,228,0.65); margin:0; line-height:1.45;">Map cow IDs to pen assignments. Securely upload existing parlor records.</p>
+                    </div>
+                    <div class="step-card fragment fade-up" data-fragment-index="3">
+                        <span class="step-num" style="color: var(--sage-lt);">3</span>
+                        <h4 style="font-size: 0.75em; color: var(--mist); margin-bottom: 10px; font-weight: 400;">Weekly Upload</h4>
+                        <p style="font-size: 0.54em; color:rgba(242,237,228,0.65); margin:0; line-height:1.45;">Drag &amp; drop your routine parlor CSV export or speak observations aloud.</p>
+                    </div>
+                    <div class="step-card highlighted fragment fade-up" data-fragment-index="4">
+                        <span class="step-num" style="color: var(--straw-lt);">4</span>
+                        <h4 style="font-size: 0.75em; color: var(--straw-lt); margin-bottom: 10px; font-weight: 400;">First Alert</h4>
+                        <p style="font-size: 0.54em; color:rgba(242,237,228,0.8); margin:0; line-height:1.45;">The GNN identifies at-risk cows before visible symptoms — proving value on day one.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════════════════════════
+                 SLIDE 9 — The Ask
+            ══════════════════════════════════════════════════════════════════ -->
+            <section data-transition="zoom">
+                <div class="glow-a" style="background: radial-gradient(ellipse, rgba(201,152,58,0.12) 0%, transparent 65%);"></div>
+                <div class="glow-b"></div>
+
+                <span class="eyebrow gold">Closing</span>
+                <h2 class="slide-h2">The Ask</h2>
+                <p class="lede" style="margin-bottom: 20px;">
+                    Built in 36 hours at Cornell. Ready to pilot on real farms this spring.
+                </p>
+
+                <div style="display: flex; gap: 16px; align-items: stretch;">
+
+                    <!-- What We Built -->
+                    <div class="ask-card dark-card fragment fade-up" data-fragment-index="1">
+                        <span class="ask-icon" style="color: var(--sage);">What We Built</span>
+                        <div class="ask-title">Working System</div>
+                        <ul class="ask-list">
+                            <li>GraphSAGE + GRU, 120K params</li>
+                            <li>60-cow live inference demo</li>
+                            <li>47/47 backend tests passing</li>
+                            <li>4-screen React + D3 PWA</li>
+                            <li>Gradient XAI + Ollama LLM chain</li>
+                            <li>CSV upload + voice entry</li>
+                        </ul>
+                        <div class="price-badge" style="color: var(--sage-lt);">
+                            5,400 rows · 581 graph snapshots<br>Wageningen sensor profiles
+                        </div>
+                    </div>
+
+                    <!-- What's Next -->
+                    <div class="ask-card dark-card dark-card-highlight fragment fade-up" data-fragment-index="2">
+                        <span class="ask-icon" style="color: var(--straw);">What's Next</span>
+                        <div class="ask-title">Path to Market</div>
+                        <ul class="ask-list">
+                            <li>Cornell CARE Lab pilot partnership</li>
+                            <li>3-farm beta program (spring 2026)</li>
+                            <li>Real labeled disease event data</li>
+                            <li>Ollama on-prem deployment</li>
+                            <li>AMS &amp; parlor API integrations</li>
+                            <li>AMR compliance reporting dashboard</li>
+                        </ul>
+                        <div class="price-badge" style="color: var(--straw-lt);">
+                            Cornell Ag Extension connection needed
+                        </div>
+                    </div>
+
+                    <!-- Pricing -->
+                    <div class="ask-card dark-card dark-card-gold fragment fade-up" data-fragment-index="3">
+                        <span class="ask-icon" style="color: var(--straw);">Revenue Model</span>
+                        <div class="ask-title">SaaS Pricing</div>
+                        <ul class="ask-list" style="margin-bottom: 8px;">
+                            <li>Trial: free — CSV upload, 7 days</li>
+                            <li>Tier 1: $49/mo — unlimited manual records</li>
+                            <li>Tier 2: $149/mo — automated milking integrations</li>
+                        </ul>
+                        <div style="margin-top: 12px; padding: 12px 14px; background: rgba(201,152,58,0.08); border-radius: 4px; border: 1px solid rgba(201,152,58,0.2);">
+                            <p style="font-size: 0.52em; color: rgba(242,237,228,0.75); line-height: 1.5; margin: 0;">
+                                At $49/mo and a 60-cow herd saving $4–9K/year, the payback period is under <strong style="color: var(--straw-lt);">2 weeks.</strong>
+                            </p>
+                        </div>
+                        <div class="price-badge">
+                            Looking for 3 pilot farms + advisor
+                        </div>
+                    </div>
+
                 </div>
             </section>
 
@@ -719,15 +1031,16 @@
 
         let deck = new Reveal({
             hash: true,
-            transition: 'convex', // nice 3D transition
+            transition: 'convex',
             backgroundTransition: 'fade',
-            center: false, // false by default, allowing custom alignment
+            center: false,
             controls: false,
             progress: true,
             slideNumber: 'c/t',
-            margin: 0.1,
+            margin: 0.08,
             minScale: 0.2,
-            maxScale: 2.0
+            maxScale: 2.0,
+            backgroundColor: '#131008',
         });
 
         deck.initialize();
