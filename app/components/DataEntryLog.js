@@ -1,8 +1,15 @@
 const { useState, useEffect, useRef } = React;
 
+const API = 'http://localhost:8000';
+
 const DataEntryLog = () => {
     const [view, setView] = useState('entry'); // 'entry' or 'log'
     const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [logs, setLogs] = useState([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+    const [logsError, setLogsError] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [uploadSuccess, setUploadSuccess] = useState('');
@@ -10,7 +17,33 @@ const DataEntryLog = () => {
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
-    }, [view, submitted]);
+    }, [view, submitted, logs, loadingLogs, logsError]);
+
+    useEffect(() => {
+        // Fetch logs on mount or when switching to log view
+        if (view === 'log') {
+            setLoadingLogs(true);
+            setLogsError(null);
+            fetch(`${API}/api/logs`)
+                .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+                .then(data => {
+                    const formattedLogs = (data.logs || []).map(r => {
+                        const dateObj = r.timestamp ? new Date(r.timestamp) : new Date();
+                        const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                        return {
+                            date: `Today, ${timeStr}`,
+                            cow: String(r.cow_id),
+                            yield: r.yield_kg != null ? `${r.yield_kg}L` : '—',
+                            event: r.health_event === 'none' ? 'None' : (r.health_event || 'None'),
+                            user: 'Manual Entry',
+                        };
+                    });
+                    setLogs(formattedLogs);
+                })
+                .catch(err => setLogsError(String(err)))
+                .finally(() => setLoadingLogs(false));
+        }
+    }, [view]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -19,11 +52,11 @@ const DataEntryLog = () => {
 
         const fd = new FormData(e.target);
         const payload = {
-            cow_id:       Number(fd.get('cow_id')),
-            yield_kg:     fd.get('yield_kg') ? Number(fd.get('yield_kg')) : null,
-            pen:          fd.get('pen'),
+            cow_id: Number(fd.get('cow_id')),
+            yield_kg: fd.get('yield_kg') ? Number(fd.get('yield_kg')) : null,
+            pen: fd.get('pen'),
             health_event: fd.get('health_event'),
-            notes:        fd.get('notes') || '',
+            notes: fd.get('notes') || '',
         };
 
         try {
@@ -83,7 +116,7 @@ const DataEntryLog = () => {
                     }, {});
                 });
 
-                const response = await fetch('/api/ingest', {
+                const response = await fetch(`${API}/api/ingest`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ records: data })
@@ -108,13 +141,6 @@ const DataEntryLog = () => {
         };
         reader.readAsText(file);
     };
-
-    const mockLogs = [
-        { date: 'Today, 06:12 AM', cow: '8492', yield: '31L', event: 'Mastitis suspected', user: 'Farm Hand JS' },
-        { date: 'Yesterday, 17:45 PM', cow: '9104', yield: '40L', event: 'None', user: 'Automated Parlor' },
-        { date: 'Yesterday, 05:30 AM', cow: '6021', yield: '44L', event: 'Lame off right hind', user: 'Farm Hand JS' },
-        { date: 'Oct 12, 18:00 PM', cow: '8492', yield: '36L', event: 'None', user: 'Automated Parlor' },
-    ];
 
     const inputStyle = {
         width: '100%',
@@ -170,17 +196,17 @@ const DataEntryLog = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div>
                                         <label style={labelStyle}>Cow ID</label>
-                                        <input type="number" placeholder="e.g. 8492" required style={inputStyle} />
+                                        <input name="cow_id" type="number" placeholder="e.g. 8492" required style={inputStyle} />
                                     </div>
                                     <div>
                                         <label style={labelStyle}>Yield (Liters)</label>
-                                        <input type="number" step="0.1" placeholder="0.0" style={inputStyle} />
+                                        <input name="yield_kg" type="number" step="0.1" placeholder="0.0" style={inputStyle} />
                                     </div>
                                 </div>
 
                                 <div>
                                     <label style={labelStyle}>Pen / Location</label>
-                                    <select style={{ ...inputStyle, background: 'var(--card)' }}>
+                                    <select name="pen" style={{ ...inputStyle, background: 'var(--card)' }}>
                                         <option value="A1">Pen A1</option>
                                         <option value="A2">Pen A2</option>
                                         <option value="B1">Pen B1</option>
@@ -190,7 +216,7 @@ const DataEntryLog = () => {
 
                                 <div>
                                     <label style={labelStyle}>Health Event (If Any)</label>
-                                    <select style={{ ...inputStyle, background: 'var(--card)' }}>
+                                    <select name="health_event" style={{ ...inputStyle, background: 'var(--card)' }}>
                                         <option value="none">None - Healthy</option>
                                         <option value="lame">Lameness observed</option>
                                         <option value="mastitis">Mastitis symptoms</option>
@@ -201,13 +227,15 @@ const DataEntryLog = () => {
 
                                 <div>
                                     <label style={labelStyle}>Observation Notes</label>
-                                    <textarea rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
+                                    <textarea name="notes" rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
                                 </div>
 
-                                <button type="submit" style={{
+                                {error && <div style={{ color: 'var(--danger)', marginBottom: '16px' }}>{error}</div>}
+
+                                <button type="submit" disabled={loading} style={{
                                     width: '100%',
                                     padding: '14px',
-                                    background: 'var(--barn)',
+                                    background: loading ? 'var(--mist)' : 'var(--barn)',
                                     color: 'var(--bg)',
                                     border: 'none',
                                     borderRadius: '8px',
@@ -224,7 +252,7 @@ const DataEntryLog = () => {
                                     gap: '8px'
                                 }} className="hover-lift">
                                     <i data-lucide="save" style={{ width: '16px', height: '16px' }}></i>
-                                    Save Record
+                                    {loading ? 'Saving…' : 'Save Record'}
                                 </button>
                             </form>
                         )}
@@ -246,7 +274,7 @@ const DataEntryLog = () => {
                             <input
                                 type="file"
                                 accept=".csv"
-                                style={{ display: 'none' }}ib
+                                style={{ display: 'none' }}
                                 ref={fileInputRef}
                                 onChange={handleFileUpload}
                             />
@@ -280,19 +308,29 @@ const DataEntryLog = () => {
                 </>
             ) : (
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                    {logs.map((log, i) => (
-                        <div key={i} className="card" style={{ padding: '16px', marginBottom: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <strong>COW {log.cow}</strong>
-                                <span style={{ fontSize: '12px', color: 'var(--mist)' }}>{log.user}</span>
-                            </div>
-                            <div style={{ fontSize: '13px', color: 'var(--mist)' }}>{log.date}</div>
-                            <div style={{ marginTop: '8px', display: 'flex', gap: '20px' }}>
-                                <div><small>YIELD</small> <div>{log.yield}</div></div>
-                                <div><small>EVENT</small> <div style={{ color: log.event === 'None' ? 'var(--sage)' : 'var(--danger)' }}>{log.event}</div></div>
-                            </div>
+                    {loadingLogs ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--mist)' }}>Loading logs…</div>
+                    ) : logsError ? (
+                        <div style={{ padding: '16px', background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: '8px', color: 'var(--danger)' }}>
+                            Error loading logs: {logsError}
                         </div>
-                    ))}
+                    ) : logs.length === 0 ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--mist)' }}>No entries yet today.</div>
+                    ) : (
+                        logs.map((log, i) => (
+                            <div key={i} className="card" style={{ padding: '16px', marginBottom: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <strong>COW {log.cow}</strong>
+                                    <span style={{ fontSize: '12px', color: 'var(--mist)' }}>{log.user}</span>
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--mist)' }}>{log.date}</div>
+                                <div style={{ marginTop: '8px', display: 'flex', gap: '20px' }}>
+                                    <div><small>YIELD</small> <div>{log.yield}</div></div>
+                                    <div><small>EVENT</small> <div style={{ color: log.event === 'None' ? 'var(--sage)' : 'var(--danger)' }}>{log.event}</div></div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             )}
 
@@ -304,10 +342,6 @@ const DataEntryLog = () => {
                 @keyframes spin {
                     from { transform: rotate(0deg); }
                     to   { transform: rotate(360deg); }
-                }
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </div>

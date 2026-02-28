@@ -15,7 +15,10 @@ Mock mode:
 CORS: allow_origins=["*"] is intentional for localhost dev — lock down if deployed.
 """
 
-from typing import Optional
+import pandas as pd
+from datetime import date, datetime
+
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -214,6 +217,13 @@ async def get_explain(cow_id: int):
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@app.get("/api/logs")
+async def get_logs():
+    """
+    Returns the in-memory ingest log for the DataEntryLog component.
+    """
+    return {"logs": _ingest_log}
+
 @app.post("/api/ingest")
 async def ingest(payload: IngestPayload):
     """
@@ -224,5 +234,6 @@ async def ingest(payload: IngestPayload):
     from datetime import datetime
     record = payload.model_dump()
     record["timestamp"] = datetime.utcnow().isoformat()
-    _ingest_log.append(record)
+    # Prepend instead of append to show newest first
+    _ingest_log.insert(0, record)
     return {"status": "ok", "rows": 1, "total": len(_ingest_log)}
