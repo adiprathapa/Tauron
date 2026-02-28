@@ -34,12 +34,18 @@ const HerdMap = () => {
                 }));
 
                 // Adjacency matrix → undirected link list (i < j dedup)
+                // Tag each link with samePen so D3 can hide cross-pen clutter
                 const links = [];
                 const adj = data.adjacency || [];
                 for (let i = 0; i < adj.length; i++) {
                     for (let j = i + 1; j < (adj[i] || []).length; j++) {
                         if (adj[i][j]) {
-                            links.push({ source: nodes[i].id, target: nodes[j].id, value: 1 });
+                            const samePen = nodes[i].group === nodes[j].group;
+                            const eitherAlert = nodes[i].risk !== 'ok' || nodes[j].risk !== 'ok';
+                            links.push({
+                                source: nodes[i].id, target: nodes[j].id,
+                                value: 1, samePen, eitherAlert,
+                            });
                         }
                     }
                 }
@@ -79,21 +85,66 @@ const HerdMap = () => {
         if (isMobile || !svgRef.current || !herdData) return;
         if (typeof d3 === 'undefined') return;
 
-        const width = svgRef.current.clientWidth;
+        const width  = svgRef.current.clientWidth;
         const height = svgRef.current.clientHeight || 400;
+        const n      = herdData.nodes.length;
 
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
 
+        // ── SVG filter defs (glow effects) ──────────────────────────────────
+        const defs = svg.append("defs");
+        defs.append("filter").attr("id", "node-glow").call(f => {
+            f.append("feGaussianBlur").attr("in", "SourceGraphic").attr("stdDeviation", "4").attr("result", "blur");
+            f.append("feMerge").call(m => {
+                m.append("feMergeNode").attr("in", "blur");
+                m.append("feMergeNode").attr("in", "SourceGraphic");
+            });
+        });
+        defs.append("filter").attr("id", "edge-glow").call(f => {
+            f.append("feGaussianBlur").attr("in", "SourceGraphic").attr("stdDeviation", "2").attr("result", "blur");
+            f.append("feMerge").call(m => {
+                m.append("feMergeNode").attr("in", "blur");
+                m.append("feMergeNode").attr("in", "SourceGraphic");
+            });
+        });
+
         // Deep copy so D3 mutation doesn't touch React state
         const nodes = herdData.nodes.map(d => ({ ...d }));
-        const links = herdData.links.map(d => ({ ...d }));
+        // At 60 cows the full adjacency has 600+ edges — only render
+        // within-pen edges (structural) + cross-pen edges touching alert cows
+        const links = herdData.links
+            .filter(d => d.samePen || d.eitherAlert)
+            .map(d => ({ ...d }));
 
+        // ── Pen cluster centres (6 pens, 2 rows × 3 cols) ─────────────────
+        // group is 1-indexed (Math.floor(cowId/10)+1), map to grid position.
+        const PEN_COLS = 3, PEN_ROWS = 2;
+        const padX = width * 0.18, padY = height * 0.20;
+        const colStep = PEN_COLS > 1 ? (width  - padX * 2) / (PEN_COLS - 1) : 0;
+        const rowStep = PEN_ROWS > 1 ? (height - padY * 2) / (PEN_ROWS - 1) : 0;
+        const penCentre = (group) => {
+            const g = Math.max(1, Math.min(6, group)) - 1;
+            return { x: padX + (g % PEN_COLS) * colStep, y: padY + Math.floor(g / PEN_COLS) * rowStep };
+        };
+
+        // ── Node radii — smaller at 60-cow scale ──────────────────────────
+        const R_ALERT  = 11;   // was 14 — still prominent, less overlap
+        const R_NORMAL = 6;    // was 8  — readable dot without crowding
+
+        // ── Force simulation — tuned for 60 nodes ─────────────────────────
+        // charge: stronger repulsion keeps pens from collapsing
+        // penX/penY: soft spring to pen centre groups cows by location
+        // link: shorter distance + lower strength avoids rigidity inside pens
+        // collide: generous radius prevents label overlap
         const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(60))
-            .force("charge", d3.forceManyBody().strength(-150))
-            .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collide", d3.forceCollide().radius(20));
+            .force("link",   d3.forceLink(links).id(d => d.id).distance(n > 20 ? 28 : 50).strength(0.20))
+            .force("charge", d3.forceManyBody().strength(n > 20 ? -80 : -150).distanceMax(120))
+            .force("center", d3.forceCenter(width / 2, height / 2).strength(0.03))
+            .force("collide",d3.forceCollide().radius(d => (d.riskScore > 0.70 ? R_ALERT : R_NORMAL) + 6).strength(0.9))
+            .force("penX",   d3.forceX(d => penCentre(d.group).x).strength(0.35))
+            .force("penY",   d3.forceY(d => penCentre(d.group).y).strength(0.35))
+            .alphaDecay(0.02);
 
         const getColor = (risk) => {
             if (risk === 'high') return '#E07050';
@@ -101,40 +152,59 @@ const HerdMap = () => {
             return '#6A9E48';
         };
 
+        // ── Pen label backgrounds (rendered before links/nodes) ──────────
+        const penGroups = [...new Set(nodes.map(d => d.group))];
+        const penLabelG = svg.append("g").attr("class", "pen-labels");
+        penGroups.forEach(g => {
+            const c = penCentre(g);
+            penLabelG.append("text")
+                .attr("x", c.x).attr("y", c.y - (n > 20 ? 50 : 35))
+                .attr("text-anchor", "middle")
+                .text('Pen ' + PEN_LABELS[g - 1])
+                .style("font-family", "Cormorant Garamond, serif")
+                .style("font-size", "13px")
+                .style("font-weight", "700")
+                .style("fill", "rgba(44, 26, 14, 0.25)")
+                .style("letter-spacing", "0.08em")
+                .style("pointer-events", "none");
+        });
+
+        // ── Links — thinner/more transparent at high density ─────────────
         const link = svg.append("g")
-            .attr("stroke", "rgba(216, 208, 196, 0.4)")
-            .attr("stroke-opacity", 0.6)
             .selectAll("line")
             .data(links)
             .join("line")
-            .attr("stroke", d => d.isTransmission ? "#E07050" : "rgba(216, 208, 196, 0.4)")
-            .attr("stroke-opacity", d => d.isTransmission ? 0.9 : 0.6)
-            .attr("stroke-width", d => d.isTransmission ? 2.5 : Math.max(0.5, Math.sqrt(d.value) * 2))
-            .style("filter", d => d.isTransmission ? "url(#edge-glow)" : "none");
+            .attr("stroke", d => {
+                if (d.eitherAlert && !d.samePen) return "rgba(224, 112, 80, 0.25)";
+                if (d.eitherAlert) return "rgba(224, 112, 80, 0.35)";
+                return "rgba(216, 208, 196, 0.20)";
+            })
+            .attr("stroke-opacity", d => d.eitherAlert ? 0.8 : (n > 20 ? 0.25 : 0.6))
+            .attr("stroke-width", d => d.eitherAlert ? 1.5 : (n > 20 ? 0.5 : 1.2))
+            .style("filter", d => (d.eitherAlert && !d.samePen) ? "url(#edge-glow)" : "none");
 
         const node = svg.append("g")
-            .attr("stroke", "#FAF7F2")
-            .attr("stroke-width", 1.5)
-            .selectAll("circle")
+            .selectAll("g")
             .data(nodes)
             .join("g")
             .style("cursor", "pointer")
             .on("click", (event, d) => setSelectedNode(d));
 
         node.append("circle")
-            .attr("stroke", "#FAF7F2") // --card
-            .attr("stroke-width", 1.5)
-            .attr("r", d => d.riskScore > 0.70 ? 14 : 8)
+            .attr("stroke", "#FAF7F2")
+            .attr("stroke-width", d => d.riskScore > 0.70 ? 1.5 : 1)
+            .attr("r", d => d.riskScore > 0.70 ? R_ALERT : R_NORMAL)
             .attr("fill", d => getColor(d.risk))
             .style("filter", d => d.riskScore > 0.70 ? "url(#node-glow)" : "none");
 
+        // Labels only on alert cows — avoids crowding at 60 nodes
         node.filter(d => d.riskScore > 0.70)
             .append("text")
             .text(d => d.id.replace('Cow ', ''))
             .attr("text-anchor", "middle")
             .attr("dy", "0.3em")
             .attr("fill", "#FAF7F2")
-            .style("font-size", "9px")
+            .style("font-size", "8px")
             .style("font-family", "JetBrains Mono, monospace")
             .style("font-weight", "bold")
             .style("pointer-events", "none");
@@ -150,19 +220,21 @@ const HerdMap = () => {
                 d.fx = null; d.fy = null;
             }));
 
+        // Pulse — cycles R_ALERT → R_ALERT+4 → R_ALERT (consistent every cycle)
         function pulse() {
             svg.selectAll("circle").filter(d => d.risk === 'high')
                 .transition().duration(1000)
-                .attr("r", 15).attr("stroke-width", 3).attr("stroke", "rgba(224, 112, 80, 0.4)")
+                .attr("r", R_ALERT + 4).attr("stroke-width", 3).attr("stroke", "rgba(224, 112, 80, 0.4)")
                 .transition().duration(1000)
-                .attr("r", 12).attr("stroke-width", 1.5).attr("stroke", "#FAF7F2")
+                .attr("r", R_ALERT).attr("stroke-width", 1.5).attr("stroke", "#FAF7F2")
                 .on("end", pulse);
         }
         pulse();
 
-        node.append("title").text(d => d.id);
+        node.append("title").text(d => `${d.id} · ${d.pen} · ${d.risk.toUpperCase()}`);
 
         simulation.on("tick", () => {
+            const margin = R_ALERT + 2;
             link
                 .attr("x1", d => d.source.x)
                 .attr("y1", d => d.source.y)
@@ -170,8 +242,8 @@ const HerdMap = () => {
                 .attr("y2", d => d.target.y);
             node
                 .attr("transform", d => {
-                    d.x = Math.max(15, Math.min(width - 15, d.x));
-                    d.y = Math.max(15, Math.min(height - 15, d.y));
+                    d.x = Math.max(margin, Math.min(width  - margin, d.x));
+                    d.y = Math.max(margin, Math.min(height - margin, d.y));
                     return `translate(${d.x},${d.y})`;
                 });
         });
