@@ -160,7 +160,7 @@ def _generate_farm(
     pen_assign  = {i: i // (n_cows // n_pens) for i in range(n_cows)}
     bunk_pref   = {i: int(rng.integers(0, n_bunks)) for i in range(n_cows)}
     dim_base    = {i: int(rng.integers(5, 300)) for i in range(n_cows)}
-    base_yield  = {i: float(rng.normal(28, 4).clip(18, 45)) for i in range(n_cows)}
+    base_yield  = {i: float(np.clip(rng.normal(28, 4), 18, 45)) for i in range(n_cows)}
 
     rows = []
     for day in range(n_days):
@@ -170,12 +170,12 @@ def _generate_farm(
             rows.append(dict(
                 cow_id=cow, date=date,
                 pen_id=pen_assign[cow], bunk_id=bunk,
-                activity=float(rng.normal(450, 80).clip(200, 800)),
-                highly_active=float(rng.normal(2.5, 0.8).clip(0, 8)),
-                rumination_min=float(rng.normal(480, 45).clip(300, 620)),
-                feeding_min=float(rng.normal(210, 35).clip(100, 360)),
-                ear_temp_c=float(rng.normal(38.5, 0.3).clip(37.0, 40.5)),
-                milk_yield_kg=float(rng.normal(base_yield[cow], 1.5).clip(10, 50)),
+                activity=float(np.clip(rng.normal(450, 80), 200, 800)),
+                highly_active=float(np.clip(rng.normal(2.5, 0.8), 0, 8)),
+                rumination_min=float(np.clip(rng.normal(480, 45), 300, 620)),
+                feeding_min=float(np.clip(rng.normal(210, 35), 100, 360)),
+                ear_temp_c=float(np.clip(rng.normal(38.5, 0.3), 37.0, 40.5)),
+                milk_yield_kg=float(np.clip(rng.normal(base_yield[cow], 1.5), 10, 50)),
                 health_event=int(rng.random() < 0.01),
                 feeding_visits=int(rng.integers(3, 10)),
                 days_in_milk=dim_base[cow] + day,
@@ -443,16 +443,19 @@ def get_gnn_explainer_output(cow_id: int, graph_data: Data) -> dict:
     feature_mask = (grad / (grad.max() + 1e-8)).tolist()
 
     # Feature delta: today vs 6-day rolling mean (raw standardised values)
-    raw_seq       = graph_data.x_seq[cow_idx].numpy()   # [T, F]
+    raw_seq       = graph_data.x_seq[cow_idx].cpu().numpy()   # [T, F]
     baseline      = raw_seq[:-1].mean(0)                # [F] days 1–6
     feature_delta = (raw_seq[-1] - baseline).tolist()   # [F] signed change
 
-    # Edge mask: edge weight for edges incident on cow_idx, 0 for all others
+    # Edge mask: edge weight for edges incident on cow_idx, normalised to [0, 1]
+    # Raw weights: pen=1.0, bunk=up to 3.0 — divide by max to keep in contract range
     ei       = graph_data.edge_index.t().tolist()
     ea_raw   = graph_data.edge_attr.squeeze().cpu().numpy() \
                if graph_data.edge_attr.numel() > 0 else np.array([])
+    ea_max   = float(ea_raw.max()) if len(ea_raw) > 0 else 1.0
     edge_mask = [
-        float(ea_raw[k]) if (ei[k][0] == cow_idx or ei[k][1] == cow_idx) and k < len(ea_raw)
+        float(ea_raw[k]) / max(ea_max, 1e-8)
+        if (ei[k][0] == cow_idx or ei[k][1] == cow_idx) and k < len(ea_raw)
         else 0.0
         for k in range(len(ei))
     ]
