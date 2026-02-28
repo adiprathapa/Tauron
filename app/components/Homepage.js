@@ -416,7 +416,7 @@ const Homepage = ({ onNavigate }) => {
                             { n: '02', label: 'Graph', desc: 'Build contact network from pens', icon: 'share-2' },
                             { n: '03', label: 'Predict', desc: 'GraphSAGE + GRU inference', icon: 'brain' },
                             { n: '04', label: 'Explain', desc: 'XAI traces top features & edges', icon: 'search' },
-                            { n: '05', label: 'Alert', desc: 'Claude → plain-English action', icon: 'bell-ring' },
+                            { n: '05', label: 'Alert', desc: 'Plain English', icon: 'bell-ring' },
                         ].map(s => (
                             <div key={s.n} className="card" style={{ padding: '16px', textAlign: 'center' }}>
                                 <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '18px', fontWeight: 700, color: 'var(--sage)', opacity: 0.25, marginBottom: '4px' }}>{s.n}</div>
