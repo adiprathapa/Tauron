@@ -5,12 +5,12 @@ Tauron FastAPI server — localhost:8000
 
 Endpoints:
   GET /herd              — risk scores + adjacency matrix for D3.js graph
-  GET /explain/{cow_id}  — GNNExplainer + LLM alert for a specific cow
+  GET /explain/{cow_id}  — gradient XAI + LLM alert for a specific cow
 
 Mock mode:
   Set USE_MOCK = True in mock_data.py to serve hardcoded responses.
-  This lets the Frontend team build D3.js components before ML is integrated.
-  Flip to False after ML team delivers tauron_model.pt + graph_utils.py stubs.
+  Flip to False once tauron_model.pt is trained and graph_utils.py is implemented.
+  Emergency rollback: flip USE_MOCK back to True — demo reverts in 30 seconds.
 
 CORS: allow_origins=["*"] is intentional for localhost dev — lock down if deployed.
 """
@@ -23,14 +23,18 @@ from backend.mock_data import MOCK_HERD, MOCK_EXPLAIN, USE_MOCK
 
 
 # ---------------------------------------------------------------------------
-# Response models (define the frozen JSON contract for the frontend team)
+# Response models
+# Fields marked (new) are additions from multi-disease model — frontend can ignore
+# unknown fields (additive changes are backwards-compatible with existing D3.js consumers).
 # ---------------------------------------------------------------------------
 
 class CowSummary(BaseModel):
     id: int
     risk_score: float
-    status: str            # "alert" | "watch" | "ok"
-    top_feature: str | None
+    status: str                      # "alert" | "watch" | "ok"
+    top_feature: str | None          # highest-gradient sensor signal; null for "ok" cows
+    dominant_disease: str | None     # (new) "mastitis" | "brd" | "lameness"; null if ok
+    all_risks: dict | None           # (new) {disease: score}; null if ok
 
 
 class HerdResponse(BaseModel):
@@ -41,11 +45,12 @@ class HerdResponse(BaseModel):
 class ExplainResponse(BaseModel):
     cow_id: int
     risk_score: float
-    top_edge: dict         # {"from": int, "to": int, "weight": float}
-                           # Note: "from" is a reserved Python keyword — kept as dict
-    top_feature: str
-    feature_delta: float
-    alert_text: str
+    top_edge: dict                   # {"from": int, "to": int, "weight": float}
+    top_feature: str                 # e.g. "milk_yield_kg"
+    feature_delta: float             # signed change vs 6-day baseline
+    dominant_disease: str | None     # (new) primary disease risk
+    all_risks: dict | None           # (new) full disease breakdown
+    alert_text: str                  # plain-English farmer alert
 
 
 # ---------------------------------------------------------------------------
@@ -56,14 +61,15 @@ app = FastAPI(
     title="Tauron API",
     description=(
         "Early warning system for dairy herd disease detection. "
-        "GraphSAGE + GRU model with GNNExplainer XAI and local Mistral-7B alerts."
+        "GraphSAGE + GRU model predicting mastitis, BRD, and lameness risk "
+        "48 hours ahead. Gradient-based XAI with local Mistral-7B farmer alerts."
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # intentional for localhost dev — see claude.md
+    allow_origins=["*"],    # intentional for localhost dev — see claude.md
     allow_methods=["GET"],
     allow_headers=["*"],
 )
@@ -77,12 +83,18 @@ app.add_middleware(
 async def get_herd():
     """
     Returns risk scores for all cows and the adjacency matrix.
-    The adjacency matrix row/col order matches the cows list order exactly.
+
+    Each cow entry includes:
+    - risk_score: max risk across mastitis, BRD, and lameness [0.0, 1.0]
+    - status: "alert" (>0.70), "watch" (0.40–0.70), "ok" (<0.40)
+    - dominant_disease: which disease is driving the risk (null if ok)
+    - all_risks: individual scores per disease (null if ok)
+
+    Adjacency matrix row/col order matches the cows list order exactly.
     """
     if USE_MOCK:
         return MOCK_HERD
 
-    # Real path — lazy import so server starts without PyTorch installed
     from backend.graph_utils import build_graph, run_inference
     graph = build_graph()
     return run_inference(graph)
@@ -91,18 +103,29 @@ async def get_herd():
 @app.get("/explain/{cow_id}", response_model=ExplainResponse)
 async def get_explain(cow_id: int):
     """
-    Returns GNNExplainer output + Mistral-generated alert for a specific cow.
-    Only runs full XAI pipeline for cows with risk_score > 0.70.
+    Returns gradient XAI output + LLM-generated plain-English alert for one cow.
+
+    Runs the full explanation pipeline:
+    1. Builds contact graph from farm records
+    2. Runs TauronGNN forward + backward pass for gradient attribution
+    3. Identifies highest-importance sensor signal and contact edge
+    4. Generates plain-English alert via local Mistral-7B (Ollama) or Claude API
+
+    The alert text tells the farmer:
+    - Which cow (#ID)
+    - What disease risk (mastitis / BRD / lameness)
+    - What sensor signal triggered it (e.g. milk yield dropped 18%)
+    - Which contact cow is most relevant
+    - What action to take (isolate / check / monitor)
     """
     if USE_MOCK:
         if cow_id not in MOCK_EXPLAIN:
             raise HTTPException(
                 status_code=404,
-                detail=f"Cow {cow_id} not found. Available IDs: {list(MOCK_EXPLAIN.keys())}"
+                detail=f"Cow {cow_id} not found. Available IDs: {list(MOCK_EXPLAIN.keys())}",
             )
         return MOCK_EXPLAIN[cow_id]
 
-    # Real path — lazy import so server starts without PyTorch/Ollama running
     from backend.xai_bridge import explain_cow
     try:
         return await explain_cow(cow_id)

@@ -14,6 +14,9 @@ from backend.main import app
 
 client = TestClient(app)
 
+VALID_STATUSES  = {"alert", "watch", "ok"}
+VALID_DISEASES  = {"mastitis", "brd", "lameness"}
+
 
 class TestHerdEndpoint:
     def test_returns_200(self):
@@ -33,16 +36,15 @@ class TestHerdEndpoint:
     def test_each_cow_has_required_fields(self):
         cows = client.get("/herd").json()["cows"]
         for cow in cows:
-            assert "id" in cow
-            assert "risk_score" in cow
-            assert "status" in cow
+            assert "id"          in cow
+            assert "risk_score"  in cow
+            assert "status"      in cow
             assert "top_feature" in cow  # may be null — but key must be present
 
     def test_cow_status_values_are_valid(self):
-        valid_statuses = {"alert", "watch", "ok"}
         cows = client.get("/herd").json()["cows"]
         for cow in cows:
-            assert cow["status"] in valid_statuses, (
+            assert cow["status"] in VALID_STATUSES, (
                 f"Cow {cow['id']} has invalid status '{cow['status']}'"
             )
 
@@ -52,6 +54,35 @@ class TestHerdEndpoint:
             assert 0.0 <= cow["risk_score"] <= 1.0, (
                 f"Cow {cow['id']} risk_score {cow['risk_score']} out of [0, 1]"
             )
+
+    def test_ok_cows_have_null_disease_fields(self):
+        cows = client.get("/herd").json()["cows"]
+        for cow in cows:
+            if cow["status"] == "ok":
+                assert cow["top_feature"]      is None, f"ok cow #{cow['id']} has non-null top_feature"
+                assert cow["dominant_disease"] is None, f"ok cow #{cow['id']} has non-null dominant_disease"
+                assert cow["all_risks"]        is None, f"ok cow #{cow['id']} has non-null all_risks"
+
+    def test_alert_cows_have_disease_fields(self):
+        cows = client.get("/herd").json()["cows"]
+        for cow in cows:
+            if cow["status"] == "alert":
+                assert cow["dominant_disease"] in VALID_DISEASES, (
+                    f"alert cow #{cow['id']} missing valid dominant_disease"
+                )
+                assert isinstance(cow["all_risks"], dict), (
+                    f"alert cow #{cow['id']} all_risks is not a dict"
+                )
+                assert set(cow["all_risks"].keys()) == VALID_DISEASES
+
+    def test_all_risk_scores_in_range(self):
+        cows = client.get("/herd").json()["cows"]
+        for cow in cows:
+            if cow["all_risks"] is not None:
+                for disease, score in cow["all_risks"].items():
+                    assert 0.0 <= score <= 1.0, (
+                        f"Cow #{cow['id']} {disease} risk {score} out of [0, 1]"
+                    )
 
     def test_adjacency_is_square(self):
         body = client.get("/herd").json()
@@ -86,7 +117,11 @@ class TestExplainEndpoint:
 
     def test_response_has_all_required_keys(self):
         body = client.get("/explain/47").json()
-        required_keys = {"cow_id", "risk_score", "top_edge", "top_feature", "feature_delta", "alert_text"}
+        required_keys = {
+            "cow_id", "risk_score", "top_edge", "top_feature",
+            "feature_delta", "alert_text",
+            "dominant_disease", "all_risks",  # new multi-disease fields
+        }
         for key in required_keys:
             assert key in body, f"Missing key: {key}"
 
@@ -96,8 +131,8 @@ class TestExplainEndpoint:
 
     def test_top_edge_has_required_keys(self):
         top_edge = client.get("/explain/47").json()["top_edge"]
-        assert "from" in top_edge
-        assert "to" in top_edge
+        assert "from"   in top_edge
+        assert "to"     in top_edge
         assert "weight" in top_edge
 
     def test_top_edge_from_matches_cow(self):
@@ -112,6 +147,28 @@ class TestExplainEndpoint:
         alert = client.get("/explain/47").json()["alert_text"]
         assert isinstance(alert, str)
         assert len(alert) > 0
+
+    def test_alert_text_names_the_cow(self):
+        """Alert text must reference the cow ID so farmers can act immediately."""
+        body  = client.get("/explain/47").json()
+        alert = body["alert_text"]
+        assert "47" in alert, f"Alert text does not name cow #47: '{alert}'"
+
+    def test_dominant_disease_is_valid_or_none(self):
+        body = client.get("/explain/47").json()
+        if body["dominant_disease"] is not None:
+            assert body["dominant_disease"] in VALID_DISEASES
+
+    def test_all_risks_covers_all_diseases(self):
+        body = client.get("/explain/47").json()
+        if body["all_risks"] is not None:
+            assert set(body["all_risks"].keys()) == VALID_DISEASES
+            for score in body["all_risks"].values():
+                assert 0.0 <= score <= 1.0
+
+    def test_feature_delta_is_float(self):
+        delta = client.get("/explain/47").json()["feature_delta"]
+        assert isinstance(delta, float)
 
     def test_all_mock_cows_have_explain(self):
         """Every cow in /herd should have a corresponding /explain entry."""

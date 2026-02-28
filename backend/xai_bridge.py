@@ -1,20 +1,20 @@
 """
 backend/xai_bridge.py
 
-XAI Bridge: transforms raw GNNExplainer output into the /explain/{cow_id} response schema,
-then calls the local Mistral-7B LLM to generate a plain-English farmer alert.
+XAI Bridge: transforms gradient-based attribution output into the /explain/{cow_id}
+response schema, then calls the local Mistral-7B LLM to generate a plain-English
+farmer alert.
 
 Data flow:
-    GNNExplainer tensors (from graph_utils.get_gnn_explainer_output)
-        → extract_top_edge()        find highest-weight edge incident on target cow
-        → extract_top_feature()     find highest-importance node feature
-        → build_xai_json()          assemble structured intermediate dict (no alert_text)
-        → llm_engine.generate_alert()  Ollama call → alert_text string
+    graph_utils.get_gnn_explainer_output()  gradient attribution per cow
+        → extract_top_edge()        highest-weight contact edge for this cow
+        → extract_top_feature()     highest-gradient sensor feature
+        → build_xai_json()          structured intermediate dict (no alert_text yet)
+        → llm_engine.generate_alert()  Ollama → plain-English sentence
         → final response dict       matches /explain/{cow_id} schema exactly
 
-IMPORTANT: FEATURE_NAMES order here must exactly match the feature column order
-in the training data used by the ML team. Coordinate this before ML handoff.
-If the order is wrong, top_feature will point to the wrong feature.
+FEATURE_NAMES must exactly match SENSOR_FEATURES in graph_utils.py.
+They are imported directly from graph_utils to guarantee alignment.
 
 Pure functions (extract_top_edge, extract_top_feature, build_xai_json) have no side
 effects and no ML/network dependencies — fully unit-testable in isolation.
@@ -23,21 +23,48 @@ effects and no ML/network dependencies — fully unit-testable in isolation.
 from backend.llm_engine import generate_alert
 from backend.mock_data import MOCK_EXPLAIN, USE_MOCK
 
-# Feature names in training column order — must match graph_utils.py feature matrix
-# Coordinate with ML team before their handoff
-FEATURE_NAMES = [
-    "milk_yield",
-    "milk_yield_drop",        # delta from 7-day rolling average (negative = drop)
-    "vet_event_flag",         # 1 if vet event in past 7 days, else 0
-    "pen_assignment",         # pen ID (categorical, encoded)
-    "feeding_station",        # feeding station ID (categorical, encoded)
-    "rumination_minutes",     # daily rumination time in minutes
-    "activity_index",         # step-count / activity score (collar sensor)
-    "brd_cough_frequency",    # coughs per hour (acoustic sensor, 0 if no sensor)
-    "lameness_score",         # gait score 0–3 (visual assessment, 0 if not assessed)
-    "proximity_to_alert",     # 1 if adjacent node has risk_score > 0.70, else 0
-]
+# Single source of truth: import from graph_utils so order never drifts
+# (lazy import to avoid pulling in PyTorch at module load in mock mode)
+def _get_feature_names() -> list:
+    from backend.graph_utils import SENSOR_FEATURES
+    return SENSOR_FEATURES
 
+# Module-level alias used by tests and the rest of the bridge
+# Resolved once on first import — safe because graph_utils is a pure constant list
+try:
+    from backend.graph_utils import SENSOR_FEATURES as FEATURE_NAMES
+except ImportError:
+    # Fallback if torch/torch_geometric not installed (e.g. test environment without ML deps)
+    FEATURE_NAMES = [
+        "activity", "highly_active", "rumination_min", "feeding_min", "ear_temp_c",
+        "milk_yield_kg", "health_event", "feeding_visits", "days_in_milk",
+    ]
+
+DISEASES = ["mastitis", "brd", "lameness"]
+
+# Human-readable labels for the LLM prompt — maps internal feature names to plain English
+FEATURE_LABELS = {
+    "activity":       "activity level",
+    "highly_active":  "hours of high activity",
+    "rumination_min": "rumination time",
+    "feeding_min":    "feeding time",
+    "ear_temp_c":     "ear temperature",
+    "milk_yield_kg":  "milk yield",
+    "health_event":   "recent vet event",
+    "feeding_visits": "feeding station visits",
+    "days_in_milk":   "days in milk",
+}
+
+DISEASE_LABELS = {
+    "mastitis": "mastitis (udder infection)",
+    "brd":      "BRD (bovine respiratory disease)",
+    "lameness": "lameness (hoof/leg issue)",
+}
+
+
+# ---------------------------------------------------------------------------
+# Pure extraction functions — no side effects, fully testable
+# ---------------------------------------------------------------------------
 
 def extract_top_edge(
     edge_index: list,
@@ -46,7 +73,7 @@ def extract_top_edge(
     target_cow_id: int,
 ) -> dict:
     """
-    Find the edge with the highest GNNExplainer mask weight incident on target cow.
+    Find the edge with the highest mask weight incident on the target cow.
 
     Args:
         edge_index:     list of [from_node_idx, to_node_idx] pairs (node indices, not cow IDs)
@@ -63,7 +90,6 @@ def extract_top_edge(
 
     target_idx = cow_ids.index(target_cow_id)
 
-    # Filter to edges where target cow is either source or destination
     incident = [
         (i, float(mask_val))
         for i, (edge, mask_val) in enumerate(zip(edge_index, edge_mask))
@@ -74,15 +100,14 @@ def extract_top_edge(
         return {"from": target_cow_id, "to": target_cow_id, "weight": 0.0}
 
     best_i, best_weight = max(incident, key=lambda x: x[1])
-    src_idx, dst_idx = edge_index[best_i]
+    src_idx, dst_idx    = edge_index[best_i]
 
-    # Return the neighbor node (not the target itself)
-    neighbor_idx = dst_idx if src_idx == target_idx else src_idx
+    neighbor_idx    = dst_idx if src_idx == target_idx else src_idx
     neighbor_cow_id = cow_ids[neighbor_idx]
 
     return {
-        "from": target_cow_id,
-        "to": neighbor_cow_id,
+        "from":   target_cow_id,
+        "to":     neighbor_cow_id,
         "weight": round(best_weight, 4),
     }
 
@@ -92,13 +117,12 @@ def extract_top_feature(
     feature_delta: list | None = None,
 ) -> tuple[str, float]:
     """
-    Find the most important feature from GNNExplainer's node feature mask.
+    Find the most important feature from the gradient-based feature mask.
 
     Args:
-        feature_mask:   list of float importance scores, one per feature
-                        order must match FEATURE_NAMES
-        feature_delta:  optional list of signed deltas (change from baseline)
-                        same order as feature_mask; used for alert context
+        feature_mask:  list of float importance scores, one per feature (order = FEATURE_NAMES)
+        feature_delta: optional list of signed deltas (change from 6-day baseline)
+                       same order as feature_mask; provides directional context for the alert
 
     Returns:
         (feature_name: str, delta: float)
@@ -106,9 +130,13 @@ def extract_top_feature(
     if not feature_mask or len(feature_mask) > len(FEATURE_NAMES):
         return FEATURE_NAMES[0], 0.0
 
-    top_idx = max(range(len(feature_mask)), key=lambda i: feature_mask[i])
+    top_idx  = max(range(len(feature_mask)), key=lambda i: feature_mask[i])
     top_name = FEATURE_NAMES[top_idx]
-    delta = float(feature_delta[top_idx]) if feature_delta and len(feature_delta) > top_idx else 0.0
+    delta    = (
+        float(feature_delta[top_idx])
+        if feature_delta and len(feature_delta) > top_idx
+        else 0.0
+    )
 
     return top_name, round(delta, 4)
 
@@ -122,25 +150,26 @@ def build_xai_json(
     """
     Assemble the structured XAI intermediate dict (without alert_text).
 
-    This is a pure function — no async, no side effects, no ML dependencies.
-    Unit-testable with synthetic explainer output.
-
-    This dict is passed directly to llm_engine._build_user_prompt().
+    Pure function — no async, no side effects, no ML dependencies.
+    Passed directly to llm_engine.generate_alert().
 
     Args:
         cow_id:           farm ID of the cow being explained
         risk_score:       model output risk score [0.0, 1.0]
         explainer_output: dict from graph_utils.get_gnn_explainer_output()
-                          keys: cow_id, edge_mask, edge_index, feature_mask, feature_names
-        cow_ids:          list mapping node index → cow ID (from graph_utils)
+                          required keys: edge_mask, edge_index, feature_mask
+                          optional keys: feature_delta, dominant_disease, all_risks
+        cow_ids:          list mapping node index → cow ID
 
     Returns:
         {
-            "cow_id":        int,
-            "risk_score":    float,
-            "top_edge":      {"from": int, "to": int, "weight": float},
-            "top_feature":   str,
-            "feature_delta": float
+            "cow_id":           int,
+            "risk_score":       float,
+            "top_edge":         {"from": int, "to": int, "weight": float},
+            "top_feature":      str,
+            "feature_delta":    float,          # signed change of top feature vs baseline
+            "dominant_disease": str | None,     # "mastitis" | "brd" | "lameness"
+            "all_risks":        dict | None,    # {disease: score}
         }
     """
     top_edge = extract_top_edge(
@@ -156,19 +185,25 @@ def build_xai_json(
     )
 
     return {
-        "cow_id": cow_id,
-        "risk_score": round(float(risk_score), 4),
-        "top_edge": top_edge,
-        "top_feature": top_feature,
-        "feature_delta": feature_delta,
+        "cow_id":           cow_id,
+        "risk_score":       round(float(risk_score), 4),
+        "top_edge":         top_edge,
+        "top_feature":      top_feature,
+        "feature_delta":    feature_delta,
+        "dominant_disease": explainer_output.get("dominant_disease"),
+        "all_risks":        explainer_output.get("all_risks"),
     }
 
 
+# ---------------------------------------------------------------------------
+# Full pipeline
+# ---------------------------------------------------------------------------
+
 async def explain_cow(cow_id: int) -> dict:
     """
-    Full pipeline: build_graph → GNNExplainer → structured JSON → LLM → response.
+    Full pipeline: build_graph → gradient XAI → structured JSON → LLM → response.
 
-    This is the real path called by main.py when USE_MOCK = False.
+    Called by main.py when USE_MOCK = False.
 
     Args:
         cow_id: farm ID of the cow to explain
@@ -182,22 +217,20 @@ async def explain_cow(cow_id: int) -> dict:
     if USE_MOCK:
         return MOCK_EXPLAIN.get(cow_id, _not_found_response(cow_id))
 
-    # Lazy imports — avoid top-level PyTorch import so server starts without ML deps
     from backend.graph_utils import build_graph, run_inference, get_gnn_explainer_output
 
-    graph = build_graph()
+    graph            = build_graph()
     inference_result = run_inference(graph)
 
-    # Find this cow's risk score in the inference result
     cow_data = next((c for c in inference_result["cows"] if c["id"] == cow_id), None)
     if cow_data is None:
         raise ValueError(f"Cow {cow_id} not found in inference result")
 
     risk_score = cow_data["risk_score"]
-    cow_ids = [c["id"] for c in inference_result["cows"]]
+    cow_ids    = [c["id"] for c in inference_result["cows"]]
 
     explainer_output = get_gnn_explainer_output(cow_id, graph)
-    xai_json = build_xai_json(cow_id, risk_score, explainer_output, cow_ids)
+    xai_json         = build_xai_json(cow_id, risk_score, explainer_output, cow_ids)
 
     alert_text = await generate_alert(xai_json)
 
@@ -205,12 +238,14 @@ async def explain_cow(cow_id: int) -> dict:
 
 
 def _not_found_response(cow_id: int) -> dict:
-    """Safe empty response for unknown cow IDs. Used only in mock mode edge cases."""
+    """Safe empty response for unknown cow IDs (mock mode edge case only)."""
     return {
-        "cow_id": cow_id,
-        "risk_score": 0.0,
-        "top_edge": {"from": cow_id, "to": cow_id, "weight": 0.0},
-        "top_feature": "unknown",
-        "feature_delta": 0.0,
-        "alert_text": f"No data available for cow #{cow_id}.",
+        "cow_id":           cow_id,
+        "risk_score":       0.0,
+        "top_edge":         {"from": cow_id, "to": cow_id, "weight": 0.0},
+        "top_feature":      "unknown",
+        "feature_delta":    0.0,
+        "dominant_disease": None,
+        "all_risks":        None,
+        "alert_text":       f"No data available for cow #{cow_id}.",
     }
