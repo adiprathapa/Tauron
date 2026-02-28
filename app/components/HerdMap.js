@@ -497,12 +497,9 @@ const HerdMap = () => {
 
                     {selectedExplain && (
                         <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
-                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '6px' }}>Plain English</div>
+                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '6px' }}>Claude → plain-English action</div>
                             <div style={{ fontSize: '15px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.4' }}>
                                 {selectedExplain.alert_text}
-                            </div>
-                            <div style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.30)', fontFamily: 'JetBrains Mono, monospace', lineHeight: '1.5' }}>
-                                XAI: gradient attribution (∂risk/∂sensor) · single backward pass · {'<'}5 ms
                             </div>
                         </div>
                     )}
