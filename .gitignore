@@ -222,3 +222,4 @@ data/
 # Allow model weights (475KB, safe for GitHub)
 !models/tauron_model.pt
 !backend/models/tauron_model.pt
+node_modules/
