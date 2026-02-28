@@ -104,3 +104,27 @@ python3 app/server.py
 python train.py --epochs 100 --runs 12
 # Best checkpoint: models/tauron_model.pt (AUROC ~0.995)
 ```
+Farmer speaks into phone/laptop mic
+        ↓
+  Web Speech API (browser-native, no install)
+  "Cow A wasn't eating much and milk was low.
+   B gave 24 litres, fine. C is limping."
+        ↓
+  POST /api/voice  →  Ollama/Mistral (local)
+        ↓
+  Structured columns extracted:
+
+  ┌────────┬──────────┬─────┬─────────────┬────────────────────────┐
+  │ cow_id │ yield_kg │ pen │ health_event│ notes                  │
+  ├────────┼──────────┼─────┼─────────────┼────────────────────────┤
+  │ A      │ null     │ A1  │ off_feed    │ reduced milk yield     │
+  │ B      │ 24.0     │ A1  │ none        │                        │
+  │ C      │ null     │ A1  │ lame        │                        │
+  └────────┴──────────┴─────┴─────────────┴────────────────────────┘
+        ↓
+  Farmer reviews pre-filled rows, edits if needed
+        ↓
+  Save → POST /api/ingest (one row per cow)
+        ↓
+  _ingest_log  →  ML pipeline baseline updated
+
