@@ -15,10 +15,10 @@ Mock mode:
 CORS: allow_origins=["*"] is intentional for localhost dev — lock down if deployed.
 """
 
-import pandas as pd
 from datetime import date, datetime
+from typing import List, Optional
 
-from typing import Optional, List
+import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
