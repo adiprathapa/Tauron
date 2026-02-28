@@ -1,8 +1,12 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 const DataEntryLog = () => {
     const [view, setView] = useState('entry'); // 'entry' or 'log'
     const [submitted, setSubmitted] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState('');
+    const [uploadSuccess, setUploadSuccess] = useState('');
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
@@ -15,6 +19,56 @@ const DataEntryLog = () => {
             setSubmitted(false);
             e.target.reset();
         }, 2000);
+    };
+
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        setUploadError('');
+        setUploadSuccess('');
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const text = event.target.result;
+                const lines = text.split('\n').filter(line => line.trim() !== '');
+                if (lines.length < 2) throw new Error("CSV is empty or missing data rows.");
+
+                const headers = lines[0].split(',').map(h => h.trim());
+                const data = lines.slice(1).map(line => {
+                    const values = line.split(',');
+                    return headers.reduce((obj, header, index) => {
+                        obj[header] = values[index]?.trim();
+                        return obj;
+                    }, {});
+                });
+
+                const response = await fetch('/api/ingest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ records: data })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+
+                setUploadSuccess(`Successfully uploaded ${data.length} records.`);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            } catch (err) {
+                setUploadError(err.message || "Failed to parse or upload CSV.");
+            } finally {
+                setUploading(false);
+                setTimeout(() => { setUploadSuccess(''); }, 4000);
+            }
+        };
+        reader.onerror = () => {
+            setUploadError("Error reading file.");
+            setUploading(false);
+        };
+        reader.readAsText(file);
     };
 
     const mockLogs = [
@@ -95,82 +149,132 @@ const DataEntryLog = () => {
             </div>
 
             {view === 'entry' ? (
-                <div className="card" style={{ padding: '24px' }}>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--barn)', marginBottom: '8px' }}>Manual Entry</h3>
-                    <p style={{ color: '#444', fontSize: '16px', marginBottom: '24px', lineHeight: '1.5' }}>
-                        Designed to take under 2 minutes. Tauron uses this to learn individual baselines.
-                    </p>
+                <>
+                    <div className="card" style={{ padding: '24px' }}>
+                        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--barn)', marginBottom: '8px' }}>Manual Entry</h3>
+                        <p style={{ color: '#444', fontSize: '16px', marginBottom: '24px', lineHeight: '1.5' }}>
+                            Designed to take under 2 minutes. Tauron uses this to learn individual baselines.
+                        </p>
 
-                    {submitted ? (
-                        <div style={{ background: 'var(--success-bg)', border: '1px solid rgba(106, 158, 72, 0.3)', padding: '24px', borderRadius: '8px', textAlign: 'center', animation: 'fadeIn 0.3s' }}>
-                            <i data-lucide="check-circle" style={{ width: '32px', height: '32px', color: 'var(--sage)', marginBottom: '12px' }}></i>
-                            <h4 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 'bold', color: 'var(--sage)', marginBottom: '4px' }}>Record Saved</h4>
-                            <p style={{ fontSize: '16px', color: 'var(--sage)' }}>Model baseline updated successfully.</p>
-                        </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} style={{ animation: 'fadeIn 0.3s' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div>
-                                    <label style={labelStyle}>Cow ID</label>
-                                    <input type="number" placeholder="e.g. 8492" required style={inputStyle} />
+                        {submitted ? (
+                            <div style={{ background: 'var(--success-bg)', border: '1px solid rgba(106, 158, 72, 0.3)', padding: '24px', borderRadius: '8px', textAlign: 'center', animation: 'fadeIn 0.3s' }}>
+                                <i data-lucide="check-circle" style={{ width: '32px', height: '32px', color: 'var(--sage)', marginBottom: '12px' }}></i>
+                                <h4 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 'bold', color: 'var(--sage)', marginBottom: '4px' }}>Record Saved</h4>
+                                <p style={{ fontSize: '16px', color: 'var(--sage)' }}>Model baseline updated successfully.</p>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleSubmit} style={{ animation: 'fadeIn 0.3s' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div>
+                                        <label style={labelStyle}>Cow ID</label>
+                                        <input type="number" placeholder="e.g. 8492" required style={inputStyle} />
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Yield (Liters)</label>
+                                        <input type="number" step="0.1" placeholder="0.0" style={inputStyle} />
+                                    </div>
                                 </div>
+
                                 <div>
-                                    <label style={labelStyle}>Yield (Liters)</label>
-                                    <input type="number" step="0.1" placeholder="0.0" style={inputStyle} />
+                                    <label style={labelStyle}>Pen / Location</label>
+                                    <select style={{ ...inputStyle, background: 'var(--card)' }}>
+                                        <option value="A1">Pen A1</option>
+                                        <option value="A2">Pen A2</option>
+                                        <option value="B1">Pen B1</option>
+                                        <option value="Hospital">Hospital Pen</option>
+                                    </select>
                                 </div>
-                            </div>
 
-                            <div>
-                                <label style={labelStyle}>Pen / Location</label>
-                                <select style={{ ...inputStyle, background: 'var(--card)' }}>
-                                    <option value="A1">Pen A1</option>
-                                    <option value="A2">Pen A2</option>
-                                    <option value="B1">Pen B1</option>
-                                    <option value="Hospital">Hospital Pen</option>
-                                </select>
-                            </div>
+                                <div>
+                                    <label style={labelStyle}>Health Event (If Any)</label>
+                                    <select style={{ ...inputStyle, background: 'var(--card)' }}>
+                                        <option value="none">None - Healthy</option>
+                                        <option value="lame">Lameness observed</option>
+                                        <option value="mastitis">Mastitis symptoms</option>
+                                        <option value="calving">Calving</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
 
-                            <div>
-                                <label style={labelStyle}>Health Event (If Any)</label>
-                                <select style={{ ...inputStyle, background: 'var(--card)' }}>
-                                    <option value="none">None - Healthy</option>
-                                    <option value="lame">Lameness observed</option>
-                                    <option value="mastitis">Mastitis symptoms</option>
-                                    <option value="calving">Calving</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
+                                <div>
+                                    <label style={labelStyle}>Observation Notes</label>
+                                    <textarea rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
+                                </div>
 
-                            <div>
-                                <label style={labelStyle}>Observation Notes</label>
-                                <textarea rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
-                            </div>
+                                <button type="submit" style={{
+                                    width: '100%',
+                                    padding: '14px',
+                                    background: 'var(--barn)',
+                                    color: 'var(--bg)',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontFamily: 'Cormorant Garamond, serif',
+                                    fontSize: '15px',
+                                    fontWeight: 'bold',
+                                    letterSpacing: '0.1em',
+                                    textTransform: 'uppercase',
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }} className="hover-lift">
+                                    <i data-lucide="save" style={{ width: '16px', height: '16px' }}></i>
+                                    Save Record
+                                </button>
+                            </form>
+                        )}
+                    </div>
 
-                            <button type="submit" style={{
-                                width: '100%',
-                                padding: '14px',
-                                background: 'var(--barn)',
-                                color: 'var(--bg)',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontFamily: 'Cormorant Garamond, serif',
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                letterSpacing: '0.1em',
-                                textTransform: 'uppercase',
-                                cursor: 'pointer',
-                                transition: 'background 0.2s',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }} className="hover-lift">
-                                <i data-lucide="save" style={{ width: '16px', height: '16px' }}></i>
-                                Save Record
+                    <div className="card" style={{ padding: '24px', marginTop: '16px', animation: 'fadeIn 0.3s' }}>
+                        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 'bold', color: 'var(--barn)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <i data-lucide="upload-cloud" style={{ width: '20px', height: '20px' }}></i>
+                            Batch Upload CSV
+                        </h3>
+                        <p style={{ color: '#444', fontSize: '15px', marginBottom: '16px', lineHeight: '1.5' }}>
+                            Upload historical logs or parlor mass-export files (.csv).
+                        </p>
+
+                        {uploadError && <div style={{ color: 'var(--danger)', fontSize: '14px', marginBottom: '12px' }}>{uploadError}</div>}
+                        {uploadSuccess && <div style={{ color: 'var(--sage)', fontSize: '14px', marginBottom: '12px' }}>{uploadSuccess}</div>}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <input
+                                type="file"
+                                accept=".csv"
+                                style={{ display: 'none' }}
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploading}
+                                style={{
+                                    padding: '12px 20px',
+                                    background: 'transparent',
+                                    border: '1px solid var(--line)',
+                                    color: 'var(--ink)',
+                                    borderRadius: '8px',
+                                    fontFamily: 'Cormorant Garamond, serif',
+                                    fontSize: '15px',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    position: 'relative'
+                                }}
+                                className="hover-lift"
+                            >
+                                <i data-lucide={uploading ? "loader" : "file-text"} style={{ width: '16px', height: '16px', animation: uploading ? 'spin 1s linear infinite' : 'none' }}></i>
+                                {uploading ? 'Uploading...' : 'Select CSV File'}
                             </button>
-                        </form>
-                    )}
-                </div>
+                        </div>
+                    </div>
+                </>
             ) : (
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeIn 0.3s' }}>
@@ -209,6 +313,10 @@ const DataEntryLog = () => {
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(5px); }
                     to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </div>
