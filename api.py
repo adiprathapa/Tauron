@@ -25,8 +25,25 @@ import pandas as pd
 import anthropic
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 import tauron_pipeline as tp
+
+
+def _sanitize(obj):
+    """Recursively convert numpy types to native Python for JSON serialization."""
+    if isinstance(obj, dict):
+        return {_sanitize(k): _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize(v) for v in obj]
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
+
 
 app = FastAPI(title="Tauron", version="1.0")
 app.add_middleware(
@@ -74,10 +91,10 @@ def herd():
         raise HTTPException(503, "model not loaded")
     ei = _graph.edge_index.t().tolist()
     ew = _graph.edge_attr.squeeze(-1).tolist()
-    return {
+    return JSONResponse(_sanitize({
         "cows":  _scores,
         "edges": [{"src": e[0], "dst": e[1], "w": w} for e, w in zip(ei, ew)],
-    }
+    }))
 
 
 @app.get("/alert/{cow_id}")
@@ -87,7 +104,7 @@ def alert(cow_id: int):
         raise HTTPException(503, "model not loaded")
     if cow_id not in _graph.cow_ids:
         raise HTTPException(404, f"cow {cow_id} not found")
-    return tp.explain_cow(_graph, _graph.cow_ids.index(cow_id))
+    return JSONResponse(_sanitize(tp.explain_cow(_graph, _graph.cow_ids.index(cow_id))))
 
 
 @app.get("/explain/{cow_id}")
@@ -98,7 +115,7 @@ def explain(cow_id: int):
     if cow_id not in _graph.cow_ids:
         raise HTTPException(404, f"cow {cow_id} not found")
 
-    xai    = tp.explain_cow(_graph, _graph.cow_ids.index(cow_id))
+    xai    = _sanitize(tp.explain_cow(_graph, _graph.cow_ids.index(cow_id)))
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     msg    = client.messages.create(
         model="claude-sonnet-4-6",
@@ -107,7 +124,7 @@ def explain(cow_id: int):
             f"You are a dairy herd advisor. Write one plain-English action sentence "
             f"a farmer can act on immediately based on this model output: {json.dumps(xai)}"}],
     )
-    return {"cow_id": f"#{cow_id}", "alert": msg.content[0].text, "xai": xai}
+    return JSONResponse({"cow_id": f"#{cow_id}", "alert": msg.content[0].text, "xai": xai})
 
 
 @app.post("/api/ingest")
