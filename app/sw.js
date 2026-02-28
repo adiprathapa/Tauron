@@ -1,17 +1,17 @@
 const CACHE_NAME = 'tauron-v2';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/manifest.json',
-  '/icon.svg',
-  '/components/MorningAlertFeed.js',
-  '/components/HerdMap.js',
-  '/components/DataEntryLog.js',
-  '/components/SustainabilityImpact.js',
-  '/components/Homepage.js',
-  '/components/Layout.js'
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json',
+  './icon.svg',
+  './components/MorningAlertFeed.js',
+  './components/HerdMap.js',
+  './components/DataEntryLog.js',
+  './components/SustainabilityImpact.js',
+  './components/Homepage.js',
+  './components/Layout.js'
 ];
 
 self.addEventListener('install', (e) => {
