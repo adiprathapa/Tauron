@@ -8,7 +8,10 @@ Cornell Digital Ag Hackathon · February 27 – March 1, 2026
 
 - Aritro Ganguly
 - Adi Prathapa
-
+- Connor Mark
+- Krish Jana
+- Vikram Davey
+- Suchit Basineni
 ---
 
 ## Architecture
