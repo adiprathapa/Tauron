@@ -14,7 +14,7 @@
 # USE_MOCK: flip to False when tauron_model.pt is trained and graph_utils.py is live.
 # Emergency rollback: flip back to True — demo reverts in 30 seconds.
 
-USE_MOCK = True
+USE_MOCK = False
 
 MOCK_HERD = {
     "cows": [

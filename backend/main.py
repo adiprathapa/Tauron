@@ -15,6 +15,7 @@ Mock mode:
 CORS: allow_origins=["*"] is intentional for localhost dev — lock down if deployed.
 """
 
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -53,6 +54,18 @@ class ExplainResponse(BaseModel):
     alert_text: str                  # plain-English farmer alert
 
 
+class IngestPayload(BaseModel):
+    cow_id: int
+    yield_kg: Optional[float] = None
+    pen: Optional[str] = None
+    health_event: Optional[str] = "none"
+    notes: Optional[str] = ""
+
+
+# In-memory log — resets on server restart (fine for hackathon demo)
+_ingest_log: list[dict] = []
+
+
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
@@ -70,7 +83,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],    # intentional for localhost dev — see claude.md
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -131,3 +144,17 @@ async def get_explain(cow_id: int):
         return await explain_cow(cow_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/ingest")
+async def ingest(payload: IngestPayload):
+    """
+    Accept a single manual farm observation.
+    Stores in-memory for the session (resets on restart).
+    Returns: {status, rows}
+    """
+    from datetime import datetime
+    record = payload.model_dump()
+    record["timestamp"] = datetime.utcnow().isoformat()
+    _ingest_log.append(record)
+    return {"status": "ok", "rows": 1, "total": len(_ingest_log)}

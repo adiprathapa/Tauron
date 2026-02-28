@@ -1,8 +1,11 @@
 const { useState, useEffect } = React;
 
+const API = 'http://localhost:8000';
+
 const DataEntryLog = () => {
-    const [view, setView] = useState('entry'); // 'entry' or 'log'
+    const [view, setView]           = useState('entry'); // 'entry' or 'log'
     const [submitted, setSubmitted] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
@@ -10,11 +13,27 @@ const DataEntryLog = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setSubmitted(true);
-        setTimeout(() => {
-            setSubmitted(false);
-            e.target.reset();
-        }, 2000);
+        setSubmitError(null);
+        const fd = new FormData(e.target);
+        const payload = {
+            cow_id:       Number(fd.get('cow_id')),
+            yield_kg:     fd.get('yield_kg') ? Number(fd.get('yield_kg')) : null,
+            pen:          fd.get('pen'),
+            health_event: fd.get('health_event'),
+            notes:        fd.get('notes') || '',
+        };
+        const form = e.target;
+        fetch(`${API}/api/ingest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        })
+            .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+            .then(() => {
+                setSubmitted(true);
+                setTimeout(() => { setSubmitted(false); form.reset(); }, 2000);
+            })
+            .catch(err => setSubmitError(`Save failed: ${err}`));
     };
 
     const mockLogs = [
@@ -109,20 +128,25 @@ const DataEntryLog = () => {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} style={{ animation: 'fadeIn 0.3s' }}>
+                            {submitError && (
+                                <div style={{ background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: '6px', padding: '10px 14px', color: 'var(--danger)', fontSize: '14px', marginBottom: '16px' }}>
+                                    {submitError}
+                                </div>
+                            )}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>Cow ID</label>
-                                    <input type="number" placeholder="e.g. 8492" required style={inputStyle} />
+                                    <input name="cow_id" type="number" placeholder="e.g. 8492" required style={inputStyle} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Yield (Liters)</label>
-                                    <input type="number" step="0.1" placeholder="0.0" style={inputStyle} />
+                                    <input name="yield_kg" type="number" step="0.1" placeholder="0.0" style={inputStyle} />
                                 </div>
                             </div>
 
                             <div>
                                 <label style={labelStyle}>Pen / Location</label>
-                                <select style={{ ...inputStyle, background: 'var(--card)' }}>
+                                <select name="pen" style={{ ...inputStyle, background: 'var(--card)' }}>
                                     <option value="A1">Pen A1</option>
                                     <option value="A2">Pen A2</option>
                                     <option value="B1">Pen B1</option>
@@ -132,7 +156,7 @@ const DataEntryLog = () => {
 
                             <div>
                                 <label style={labelStyle}>Health Event (If Any)</label>
-                                <select style={{ ...inputStyle, background: 'var(--card)' }}>
+                                <select name="health_event" style={{ ...inputStyle, background: 'var(--card)' }}>
                                     <option value="none">None - Healthy</option>
                                     <option value="lame">Lameness observed</option>
                                     <option value="mastitis">Mastitis symptoms</option>
@@ -143,7 +167,7 @@ const DataEntryLog = () => {
 
                             <div>
                                 <label style={labelStyle}>Observation Notes</label>
-                                <textarea rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
+                                <textarea name="notes" rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
                             </div>
 
                             <button type="submit" style={{
