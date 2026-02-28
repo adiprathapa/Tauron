@@ -501,6 +501,9 @@ const HerdMap = () => {
                             <div style={{ fontSize: '15px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.4' }}>
                                 {selectedExplain.alert_text}
                             </div>
+                            <div style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.30)', fontFamily: 'JetBrains Mono, monospace', lineHeight: '1.5' }}>
+                                XAI: gradient attribution (∂risk/∂sensor) · single backward pass · {'<'}5 ms
+                            </div>
                         </div>
                     )}
 
