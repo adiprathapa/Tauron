@@ -124,11 +124,11 @@ const HerdMap = () => {
         node.append("circle")
             .attr("stroke", "#FAF7F2") // --card
             .attr("stroke-width", 1.5)
-            .attr("r", d => d.riskLevel > 0.70 ? 14 : 8)
+            .attr("r", d => d.riskScore > 0.70 ? 14 : 8)
             .attr("fill", d => getColor(d.risk))
-            .style("filter", d => d.riskLevel > 0.70 ? "url(#node-glow)" : "none");
+            .style("filter", d => d.riskScore > 0.70 ? "url(#node-glow)" : "none");
 
-        node.filter(d => d.riskLevel > 0.70)
+        node.filter(d => d.riskScore > 0.70)
             .append("text")
             .text(d => d.id.replace('Cow ', ''))
             .attr("text-anchor", "middle")
@@ -381,8 +381,8 @@ const HerdMap = () => {
                     borderRadius: '12px',
                     padding: '24px',
                     color: 'var(--bg)',
-                    boxShadow: selectedNode.riskLevel > 0.70 ? '0 0 30px rgba(224, 112, 80, 0.3)' : '0 20px 40px rgba(0,0,0,0.3)',
-                    border: selectedNode.riskLevel > 0.70 ? '1px solid var(--danger)' : '1px solid #333',
+                    boxShadow: selectedNode.riskScore > 0.70 ? '0 0 30px rgba(224, 112, 80, 0.3)' : '0 20px 40px rgba(0,0,0,0.3)',
+                    border: selectedNode.riskScore > 0.70 ? '1px solid var(--danger)' : '1px solid #333',
                     zIndex: 10,
                     transformOrigin: 'bottom center'
                 }}>

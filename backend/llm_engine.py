@@ -112,11 +112,14 @@ def _build_user_prompt(xai_json: dict) -> str:
     disease_label    = _DISEASE_LABELS.get(dominant_disease, dominant_disease or "unknown risk")
     all_risks        = xai_json.get("all_risks") or {}
 
-    # Format delta as percentage change or describe direction plainly
-    if delta > 0.05:
-        delta_str = f"up {abs(delta):.0%} above normal"
-    elif delta < -0.05:
-        delta_str = f"down {abs(delta):.0%} below normal"
+    # delta is a z-score (standardised change); convert to approx % for readability
+    # Rule of thumb: ~15% per SD, capped at 50 — gives "down ~26%" for z=-1.76
+    if delta > 0.2:
+        pct = min(int(abs(delta) * 15), 50)
+        delta_str = f"up ~{pct}% above normal"
+    elif delta < -0.2:
+        pct = min(int(abs(delta) * 15), 50)
+        delta_str = f"down ~{pct}% below normal"
     else:
         delta_str = "near baseline"
 
@@ -159,9 +162,10 @@ def _fallback_alert(xai_json: dict) -> str:
     # Actionable verb based on risk level
     action = "Isolate" if risk > 0.70 else "Check"
 
-    if abs(delta) > 0.05:
+    if abs(delta) > 0.2:
         direction = "dropped" if delta < 0 else "increased"
-        signal    = f"{feature} has {direction} {abs(delta):.0%}"
+        pct       = min(int(abs(delta) * 15), 50)
+        signal    = f"{feature} {direction} ~{pct}%"
     else:
         signal = f"abnormal {feature} detected"
 

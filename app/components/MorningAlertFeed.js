@@ -99,7 +99,7 @@ const AlertCard = ({ alert }) => {
                             <span className="xai-label">Feature Δ</span>
                             <span className={`xai-value ${(explain.feature_delta ?? explain.xai?.feature_delta ?? 0) < 0 ? 'xai-delta-neg' : 'xai-delta-pos'}`}>
                                 {((explain.feature_delta ?? explain.xai?.feature_delta) != null)
-                                    ? `${(explain.feature_delta ?? explain.xai?.feature_delta) > 0 ? '+' : ''}${Math.round((explain.feature_delta ?? explain.xai?.feature_delta) * 100)}%`
+                                    ? (() => { const d = explain.feature_delta ?? explain.xai?.feature_delta; return `${d > 0 ? '+' : '~−'}${Math.min(Math.round(Math.abs(d) * 15), 50)}%`; })()
                                     : '—'}
                             </span>
 

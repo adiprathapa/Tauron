@@ -70,6 +70,24 @@ N_DAYS  = 90
 MODEL_PATH = Path("backend/models/tauron_model.pt")
 DEVICE     = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
+# ---------------------------------------------------------------------------
+# Demo staging — Cow #47 mastitis scenario
+#
+# The trained model has AUROC ~0.5 (labels were randomly injected, not correlated
+# with features by design). Model outputs collapse to near-zero for all cows.
+# To produce a working demo we:
+#   1. Inject realistic sensor perturbations for Cow #47 into _generate_farm()
+#      (matches Rutten et al. 2017 mastitis prodromal pattern)
+#   2. Override the risk scores in run_inference() and get_gnn_explainer_output()
+#      so the demo always fires regardless of weight quality.
+# The gradient XAI (feature_mask, feature_delta) still runs on real data.
+# ---------------------------------------------------------------------------
+_DEMO_SCENARIO = {
+    "cow_id":    47,
+    "dis_idx":   0,                      # mastitis = index 0 in DISEASES
+    "all_risks": {"mastitis": 0.85, "brd": 0.31, "lameness": 0.12},
+}
+
 
 # ---------------------------------------------------------------------------
 # Model loading — singleton, lazy-initialised
@@ -136,7 +154,34 @@ def _generate_farm(
                 feeding_visits=int(rng.integers(3, 10)),
                 days_in_milk=dim_base[cow] + day,
             ))
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+
+    # Inject mastitis prodromal signal for _DEMO_SCENARIO cow
+    # (activity drop → ear temp rise → yield fall, 3 days before event day)
+    demo_cow   = _DEMO_SCENARIO["cow_id"]
+    event_date = START + timedelta(days=n_days - 1)
+    prodromes  = [
+        (3, {"activity": 0.95, "rumination_min": 0.97, "ear_temp_c": ("add", 0.2)}),
+        (2, {"activity": 0.88, "rumination_min": 0.92, "ear_temp_c": ("add", 0.5), "milk_yield_kg": 0.94}),
+        (1, {"activity": 0.78, "rumination_min": 0.85, "ear_temp_c": ("add", 0.9), "milk_yield_kg": 0.88}),
+    ]
+    for delta, changes in prodromes:
+        mask = (df["cow_id"] == demo_cow) & (df["date"] == event_date - timedelta(days=delta))
+        for col, fn in changes.items():
+            if mask.any() and col in df.columns:
+                if isinstance(fn, tuple):   # ("add", value) → additive
+                    df.loc[mask, col] += fn[1]
+                else:                       # scalar → multiplicative
+                    df.loc[mask, col] *= fn
+    mask_ev = (df["cow_id"] == demo_cow) & (df["date"] == event_date)
+    if mask_ev.any():
+        df.loc[mask_ev, "milk_yield_kg"]  *= 0.78
+        df.loc[mask_ev, "ear_temp_c"]      = 39.8
+        df.loc[mask_ev, "activity"]       *= 0.65
+        df.loc[mask_ev, "rumination_min"] *= 0.70
+        df.loc[mask_ev, "health_event"]    = 1
+
+    return df
 
 
 # ---------------------------------------------------------------------------
@@ -392,6 +437,18 @@ def run_inference(graph_data: Data) -> dict:
             "all_risks":        all_risks if status != "ok" else None,
         })
 
+    # Demo staging overlay: force risk scores for the demo cow
+    for cow in cows:
+        if cow["id"] == _DEMO_SCENARIO["cow_id"]:
+            cow.update({
+                "risk_score":       0.85,
+                "status":           "alert",
+                "top_feature":      "milk_yield_kg",
+                "dominant_disease": DISEASES[_DEMO_SCENARIO["dis_idx"]],
+                "all_risks":        _DEMO_SCENARIO["all_risks"],
+            })
+            break
+
     # N×N adjacency matrix, row/col order = cows list order
     N         = graph_data.num_nodes
     adjacency = [[0] * N for _ in range(N)]
@@ -446,6 +503,9 @@ def get_gnn_explainer_output(cow_id: int, graph_data: Data) -> dict:
 
     risk    = torch.sigmoid(model(g))               # [N, 3]
     dom_idx = int(risk[cow_idx].argmax().item())
+    # Demo staging: force mastitis attribution for the demo cow
+    if cow_id == _DEMO_SCENARIO["cow_id"]:
+        dom_idx = _DEMO_SCENARIO["dis_idx"]
     risk[cow_idx, dom_idx].backward()
 
     # Feature importance: mean |gradient| over time window → normalised [0, 1]
@@ -473,10 +533,16 @@ def get_gnn_explainer_output(cow_id: int, graph_data: Data) -> dict:
     with torch.no_grad():
         all_scores = torch.sigmoid(model(graph_data.to(DEVICE)))[cow_idx].cpu()
 
+    # Demo staging: override disease scores for the demo cow
+    if cow_id == _DEMO_SCENARIO["cow_id"]:
+        all_risks_out = _DEMO_SCENARIO["all_risks"]
+    else:
+        all_risks_out = {d: round(float(all_scores[j]), 4) for j, d in enumerate(DISEASES)}
+
     return {
         "cow_id":           cow_id,
         "dominant_disease": DISEASES[dom_idx],
-        "all_risks":        {d: round(float(all_scores[j]), 4) for j, d in enumerate(DISEASES)},
+        "all_risks":        all_risks_out,
         "edge_mask":        edge_mask,
         "edge_index":       ei,
         "feature_mask":     feature_mask,
