@@ -1,3 +1,5 @@
 # Tauron
 Cornell Digital Ag Hackathon Project
-Collaborators: Aritro Ganguly
+# Collaborators
+- Aritro Ganguly
+- Adi Prathapa

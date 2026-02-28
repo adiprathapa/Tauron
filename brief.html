@@ -23,14 +23,14 @@
   --dark-mid: #1E1A10;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
+* { margin:0; padding:0; box-sizing:border-box; font-family: 'Cormorant Garamond', serif !important; }
 html { scroll-behavior: smooth; }
 
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: 'Nunito', sans-serif;
-  font-weight: 300;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 400;
   line-height: 1.6;
 }
 
@@ -491,7 +491,7 @@ h2 {
 /* ─── TECH CARDS ─── */
 .tech-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 72px;
 }
@@ -971,24 +971,18 @@ footer {
 
 @media (max-width: 900px) {
   .header, .wrap, footer { padding-left: 24px; padding-right: 24px; }
-  .header-inner, .data-tiers, .impl-grid, .pipeline, .tech-row,
+  .header-inner, .data-tiers, .impl-grid, .pipeline,
   .app-frame, .entry-flow { grid-template-columns: 1fr; }
+  .tech-row { grid-template-columns: repeat(2, 1fr); }
   .tier { border-right: none; border-bottom: 1px solid var(--line); }
   .pipe-step { border-right: none; border-bottom: 1px solid var(--line); }
   .pipe-arrow, .ef-arrow { display: none; }
 }
 </style>
 </head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brief</title>
-    <!-- Google Fonts: Cormorant Garamond -->
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-      body, html, * {
-        font-family: 'Cormorant Garamond', serif !important;
-      }
-    </style>
+<body>
+
+<!-- HEADER -->
 <header class="header">
   <div class="header-noise"></div>
   <div class="header-glow"></div>
@@ -1025,13 +1019,13 @@ footer {
   <!-- DATA STRATEGY -->
   <div class="eyebrow">Data Strategy</div>
   <h2>Meets Farmers Where They Are</h2>
-  <p class="intro-text">Tauron is designed as a tiered system — it runs on the minimum data every dairy farm already records, and upgrades its predictions as richer data becomes available. Richer data means better predictions, but the system is useful from day one with nothing more than a spreadsheet.</p>
+  <p class="intro-text">Tauron is designed around one principle: ask as little as possible from the farmer. At Tier 1, a single weekly CSV export from their existing parlor records is all it takes. No new hardware, no new habits, no new software. Richer data means better predictions, but the system is useful from week one with nothing more than a spreadsheet they already have.</p>
 
   <div class="data-tiers">
     <div class="tier">
-      <div class="tier-badge badge-base">Tier 1 · Every farm</div>
+      <div class="tier-badge badge-base">Tier 1 · Weekly upload</div>
       <h3>Manual Records Only</h3>
-      <p>The data every dairy farmer already keeps — on paper, in Excel, or in their phone notes. Tauron ingests this via a simple weekly CSV upload or a 5-field manual entry form.</p>
+      <p>The data every dairy farmer already keeps — on paper, in Excel, or in their parlor management software. Tauron ingests this via a simple <strong>weekly CSV upload</strong>. No new behavior required — farmers are already exporting these records for their own use.</p>
       <ul>
         <li>Milk yield per cow (parlor records)</li>
         <li>Vet treatment log (which cow, what disease, when)</li>
@@ -1097,8 +1091,8 @@ footer {
       </div>
       <div class="impl-body">
         <p>Farmers get data in one of three ways. All three paths normalize to the same internal format — <code>cow_id, date, metric, value</code> — so the rest of the pipeline is identical regardless of source.</p>
-        <p><strong>CSV Upload:</strong> Farmer exports their existing spreadsheet (milk records, vet logs) and uploads it weekly. Tauron parses it automatically with a flexible column-mapping step.</p>
-        <p><strong>Manual Entry:</strong> A 5-field form in the app. Cow ID, milk yield, health event, pen assignment, notes. Under 2 minutes per day.</p>
+        <p><strong>Weekly CSV Upload:</strong> Farmer exports their existing parlor records (milk yield, vet logs, pen assignments) once a week and drops the file in. Tauron parses it automatically. Zero behavior change — they're already generating this data.</p>
+        <p><strong>Manual Entry:</strong> For farms without parlor software, a 5-field form as a fallback. Cow ID, milk yield, health event, pen assignment, notes. But the expectation is weekly, not daily.</p>
         <p><strong>API Pull:</strong> For farms with automated milking systems (DeLaval, Lely, GEA), Tauron connects directly via their export API. Fully automated — zero farmer effort after setup.</p>
         <div class="code-block">
           <code><span class="cm"># Example: Tauron ingestion endpoint</span>
@@ -1131,7 +1125,7 @@ footer {
       </div>
       <div class="impl-body">
         <p><strong>We train one model.</strong> A single GraphSAGE network with a GRU temporal layer on top. It takes the contact graph as input and outputs one risk score per cow per disease category (mastitis, BRD, lameness) for the next 48 hours.</p>
-        <p><strong>How training works:</strong> We use the Wageningen University public dairy sensor dataset as our base. Because it doesn't include labeled disease outbreak events, we synthetically inject disease events — programmatically marking cows as "sick" and walking the contagion forward through the contact graph using documented transmission rates from published epidemiology literature. This gives us supervised labels (sick / not sick at T+48h) for every cow in every time window.</p>
+        <p><strong>How training works:</strong> We use the <strong>MmCows dataset</strong> (Purdue University / NEIS Lab — <a href="https://github.com/neis-lab/mmcows" target="_blank" style="color:var(--sage)">github.com/neis-lab/mmcows</a>) as our base: 16 cows, 14 days, multimodal UWB proximity tracking. Because it doesn't include labeled disease outbreak events, we synthetically inject disease events — programmatically marking cows as "sick" and walking the contagion forward through the contact graph using documented transmission rates from published epidemiology literature. This gives us supervised labels (sick / not sick at T+48h) for every cow in every time window.</p>
         <p><strong>Why one model is enough:</strong> GraphSAGE learns a general representation of "health signal propagation through a contact network." Mastitis, BRD, and lameness all share the same underlying pattern — a degraded cow's neighbors become elevated risk. We use a multi-head output layer (one head per disease) rather than three separate models. Same graph, same weights, three output neurons.</p>
         <p><strong>The key innovation:</strong> when Cow A's health signals degrade, <strong>her neighbors' risk scores update through message passing</strong> — even if they look fine right now. A threshold alert or LSTM watching each cow in isolation structurally cannot do this.</p>
         <div class="code-block">
@@ -1162,7 +1156,7 @@ footer {
   <span class="cv">"top_feature"</span>: <span class="cv">"milk_yield_delta: -18%"</span>
 }</code>
         </div>
-        <p>This JSON is passed to the <strong>Claude API</strong>, which converts it into a one-sentence plain-English alert. The farmer reads: <em>"Cow #47 — high mastitis risk. Milk yield dropped 18% and she shared Feed Bunk C with Cow #31, who was treated Tuesday. Isolate and check temperature."</em></p>
+        <p>This JSON is passed to a locally-hosted <strong>Ollama</strong> instance (Llama 3 / Mistral), which converts it into a one-sentence plain-English alert — no API costs, no external dependency. The farmer reads: <em>"Cow #47 — high mastitis risk. Milk yield dropped 18% and she shared Feed Bunk C with Cow #31, who was treated Tuesday. Isolate and check temperature."</em></p>
         <p>No jargon. No confidence intervals. Just what to do.</p>
       </div>
     </div>
@@ -1181,7 +1175,7 @@ footer {
       <div class="pipe-arrow"></div>
       <div class="pipe-n">02 / GRAPH</div>
       <h4>Contact Graph</h4>
-      <p>Dynamic herd graph built from pen + feeding station records. Updates daily.</p>
+      <p>Dynamic herd graph built from pen + feeding station records. Rebuilt on each data upload.</p>
       <div class="pipe-tag">PyG DynamicEdge</div>
     </div>
     <div class="pipe-step">
@@ -1201,8 +1195,8 @@ footer {
     <div class="pipe-step">
       <div class="pipe-n">05 / OUTPUT</div>
       <h4>Farmer Alert</h4>
-      <p>Claude API generates plain-English action. Displayed in the demo UI.</p>
-      <div class="pipe-tag">Claude API</div>
+      <p>Ollama (local LLM) generates plain-English action from structured XAI output.</p>
+      <div class="pipe-tag">Ollama · local LLM</div>
     </div>
   </div>
 
@@ -1215,7 +1209,12 @@ footer {
     <div class="tech-card">
       <div class="tl">ML</div>
       <h4>PyTorch Geometric</h4>
-      <p>One GraphSAGE model with GRU temporal layer and three-head output (mastitis, BRD, lameness). GNNExplainer built-in. Trained on Wageningen dataset with synthetic disease event injection for supervised labels.</p>
+      <p>One GraphSAGE model with GRU temporal layer and three-head output (mastitis, BRD, lameness). GNNExplainer built-in. Trained on MmCows dataset (Purdue/NEIS Lab) with synthetic disease event injection for supervised labels.</p>
+    </div>
+    <div class="tech-card">
+      <div class="tl">XAI / LLM</div>
+      <h4>Ollama (Local)</h4>
+      <p>Self-hosted LLM (Llama 3 / Mistral) converts structured GNNExplainer JSON into plain-English farmer alerts. Zero API cost, runs fully offline — no external dependency at inference time.</p>
     </div>
     <div class="tech-card">
       <div class="tl">Frontend</div>
@@ -1244,7 +1243,7 @@ footer {
         <div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--sage); margin-top:6px;">Hours 1–6</div>
       </div>
       <div style="padding:18px; border-right:1px solid var(--line); font-size:13.5px; color:#444; line-height:1.7;">
-        Download the <strong>Wageningen dairy sensor dataset</strong>. Write a Python script to simulate a 60-cow barn: assign cows to pens and feeding stations, define a stall adjacency matrix. Write the <strong>disease injection function</strong> — picks a random cow at T=0, marks her sick, propagates to pen-mates at documented transmission probability over 7-day windows. Run it 500+ times to generate a labeled dataset of (graph snapshot → sick/not at T+48h).
+        Download the <strong>MmCows dataset</strong> (Purdue / NEIS Lab, public on GitHub — github.com/neis-lab/mmcows). Write a Python script to simulate a 60-cow barn: assign cows to pens and feeding stations, define a stall adjacency matrix. Write the <strong>disease injection function</strong> — picks a random cow at T=0, marks her sick, propagates to pen-mates at documented transmission probability over 7-day windows. Run it 500+ times to generate a labeled dataset of (graph snapshot → sick/not at T+48h).
       </div>
       <div style="padding:18px; font-size:13.5px; color:#444; line-height:1.7;">
         <strong>Hands off:</strong> <code style="font-family:'JetBrains Mono',monospace; font-size:11px; background:rgba(0,0,0,0.05); padding:1px 4px; border-radius:2px;">dataset.pt</code> — PyG-formatted graph snapshots with labels. ML team can start training immediately.
@@ -1286,7 +1285,7 @@ footer {
         <div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--sage); margin-top:6px;">Hours 8–20 (parallel)</div>
       </div>
       <div style="padding:18px; border-right:1px solid var(--line); font-size:13.5px; color:#444; line-height:1.7;">
-        FastAPI app with three endpoints needed for the demo: <strong>GET /herd</strong> (returns all cow risk scores + graph edges for the pre-seeded farm), <strong>GET /alert/{cow_id}</strong> (returns GNNExplainer output for one cow), <strong>GET /explain/{cow_id}</strong> (calls the Claude API with the structured explainer JSON and returns the plain-English alert sentence). Runs on <code>localhost:8000</code> — the React frontend points directly at it. No deployment, no auth, no database needed.
+        FastAPI app with three endpoints needed for the demo: <strong>GET /herd</strong> (returns all cow risk scores + graph edges for the pre-seeded farm), <strong>GET /alert/{cow_id}</strong> (returns GNNExplainer output for one cow), <strong>GET /explain/{cow_id}</strong> (calls the local Ollama instance with the structured explainer JSON and returns the plain-English alert sentence). Runs on <code>localhost:8000</code> — the React frontend points directly at it. No deployment, no auth, no database needed.
       </div>
       <div style="padding:18px; font-size:13.5px; color:#444; line-height:1.7;">
         <strong>Hands off:</strong> <code style="font-family:'JetBrains Mono',monospace; font-size:11px; background:rgba(0,0,0,0.05); padding:1px 4px; border-radius:2px;">localhost:8000</code> running with seeded demo data. Frontend team points their React app at it.
@@ -1445,11 +1444,12 @@ footer {
             <div class="sicon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="3" width="12" height="15" rx="1.5" stroke="#F2EDE4" stroke-width="1.3"/><line x1="7" y1="7.5" x2="13" y2="7.5" stroke="#F2EDE4" stroke-width="1.1" stroke-linecap="round"/><line x1="7" y1="10.5" x2="13" y2="10.5" stroke="#F2EDE4" stroke-width="1.1" stroke-linecap="round"/><line x1="7" y1="13.5" x2="10.5" y2="13.5" stroke="#F2EDE4" stroke-width="1.1" stroke-linecap="round"/><path d="M8 3V2.5a2 2 0 014 0V3" stroke="#F2EDE4" stroke-width="1.2"/></svg></div>
           </div>
           <div class="screen-body">
-            <p>A <strong>5-field form</strong> for daily manual entry — Cow ID, milk yield today, any health event, pen assignment, notes. Designed to take under 2 minutes. Or skip it entirely and upload a CSV from parlor records.</p>
-            <p>The log tab shows a scrollable history of all entries and model predictions so farmers can verify that the model's past alerts were correct — building trust over time.</p>
+            <p>The primary input method for Tier 1 farmers — <strong>weekly CSV upload</strong> from their existing parlor records. Drag, drop, done. Tauron handles the parsing automatically with flexible column mapping so it works with whatever format their system exports.</p>
+            <p>A 5-field manual form exists as a fallback for farms without parlor software. The log tab shows prediction history so farmers can verify past alerts were accurate — building trust over time.</p>
             <div class="feature-chips">
-              <div class="chip">5-field form</div>
-              <div class="chip">CSV upload</div>
+              <div class="chip">weekly CSV upload</div>
+              <div class="chip">auto column mapping</div>
+              <div class="chip">manual form fallback</div>
               <div class="chip">prediction history</div>
             </div>
           </div>
@@ -1498,13 +1498,13 @@ footer {
     </div>
     <div class="ef-step">
       <div class="ef-arrow"></div>
-      <div class="ef-num">Days 1–7</div>
+      <div class="ef-num">Week 1</div>
       <span class="ef-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 20l2-6 10-10 4 4-10 10-6 2z" stroke="#5C3D1E" stroke-width="1.4" stroke-linejoin="round"/><line x1="16" y1="6" x2="20" y2="10" stroke="#5C3D1E" stroke-width="1.3"/><line x1="8" y1="14" x2="12" y2="18" stroke="#5C3D1E" stroke-width="1.1"/></svg></span>
-      <h4>Daily 2-Min Log</h4>
-      <p>Enters basic daily readings. Tauron learns each cow's individual baseline. The model needs ~7 days of history before predictions become meaningful.</p>
+      <h4>Weekly 10-Min Upload</h4>
+      <p>Once a week, farmer exports their parlor records and drops the CSV in. No new habits — they're already generating this data. Tauron builds each cow's baseline over the first couple of weeks.</p>
     </div>
     <div class="ef-step">
-      <div class="ef-num">Day 8 onward</div>
+      <div class="ef-num">Week 2 onward</div>
       <span class="ef-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 4a7 7 0 017 7v4l2 3H4l2-3v-4a7 7 0 017-7z" stroke="#5C3D1E" stroke-width="1.4" stroke-linejoin="round"/><path d="M10.5 18a2.5 2.5 0 005 0" stroke="#5C3D1E" stroke-width="1.3"/><circle cx="13" cy="4" r="1.3" fill="#5C3D1E"/></svg></span>
       <h4>First Alert Fires</h4>
       <p>Farmer receives their first plain-English risk alert. If they confirm it was accurate, trust is established. This is the moment Tauron becomes indispensable.</p>
@@ -1529,14 +1529,14 @@ footer {
       <tr>
         <td><div class="tn">2</div></td>
         <td><span class="trole">ML Engineers</span>Data pipeline + model</td>
-        <td>Tier-aware data ingestion (CSV/API/manual), dynamic graph construction from pen + feeding records, GraphSAGE/TGN training on Wageningen dataset with synthetic disease injection, evaluation + risk score calibration across data tiers</td>
+        <td>Tier-aware data ingestion (CSV/API/manual), dynamic graph construction from pen + feeding records, GraphSAGE training on MmCows dataset (Purdue/NEIS Lab) with synthetic disease injection, evaluation + risk score calibration across data tiers</td>
         <td><div class="tstack">PyTorch Geometric · NumPy · scikit-learn · pandas</div></td>
       </tr>
       <tr>
         <td><div class="tn">1</div></td>
         <td><span class="trole">XAI + Backend</span>Explainability + API</td>
-        <td>GNNExplainer integration, Claude API plain-English alert generation, FastAPI endpoints for demo, risk score → alert routing</td>
-        <td><div class="tstack">GNNExplainer · FastAPI · Claude API</div></td>
+        <td>GNNExplainer integration, Ollama plain-English alert generation (local LLM, no API cost), FastAPI endpoints for demo, risk score → alert routing</td>
+        <td><div class="tstack">GNNExplainer · FastAPI · Ollama</div></td>
       </tr>
       <tr>
         <td><div class="tn">2</div></td>

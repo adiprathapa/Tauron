@@ -1,3 +1,4 @@
+claude.md
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -206,9 +207,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Tauron ML outputs
+# Tauron ML outputs (generated — do not commit)
 data/
 models/
 *.pt
-api.py
-tauron_pipeline.py

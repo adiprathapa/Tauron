@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tauron — Farm Management System</title>
+
+    <!-- Fonts from the brief -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@400;500;700&family=Nunito:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/d3@7" crossorigin></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- App Scripts (Loaded manually for Babel compatibility) -->
+    <!-- Define a global variable for icons since module imports don't work trivially in Babel standalone -->
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <!-- Load Components -->
+    <script type="text/babel" src="components/MorningAlertFeed.js"></script>
+    <script type="text/babel" src="components/HerdMap.js"></script>
+    <script type="text/babel" src="components/DataEntryLog.js"></script>
+    <script type="text/babel" src="components/SustainabilityImpact.js"></script>
+    <script type="text/babel" src="components/Layout.js"></script>
+
+    <!-- Main App -->
+    <script type="text/babel" src="app.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#2C1A0E"/>
+
+  <!-- GNN graph: three connected nodes representing herd contact graph -->
+  <!-- Edges first so nodes render on top -->
+  <line x1="256" y1="214" x2="160" y2="336" stroke="#C9983A" stroke-width="10" stroke-linecap="round" opacity="0.5"/>
+  <line x1="256" y1="214" x2="352" y2="336" stroke="#C9983A" stroke-width="10" stroke-linecap="round" opacity="0.5"/>
+  <line x1="160" y1="336" x2="352" y2="336" stroke="#C9983A" stroke-width="10" stroke-linecap="round" opacity="0.3"/>
+
+  <!-- Centre node: alert cow (amber) -->
+  <circle cx="256" cy="176" r="56" fill="#C9983A"/>
+  <!-- Pulse ring around centre to indicate alert -->
+  <circle cx="256" cy="176" r="72" fill="none" stroke="#C9983A" stroke-width="6" opacity="0.35"/>
+
+  <!-- Left neighbour: healthy (sage) -->
+  <circle cx="152" cy="344" r="40" fill="#6A9E48"/>
+
+  <!-- Right neighbour: watch (muted amber) -->
+  <circle cx="360" cy="344" r="40" fill="#6A9E48"/>
+</svg>
