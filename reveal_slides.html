@@ -7,7 +7,7 @@
     <title>Tauron — Pitch Deck · Cornell Digital Ag Hackathon 2026</title>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
@@ -56,7 +56,7 @@
         }
 
         .reveal section {
-            padding: 1.1em 6% !important;
+            padding: 0.75em 6% !important;
             overflow: hidden;
             box-sizing: border-box;
             height: 100%;
@@ -113,8 +113,8 @@
         }
 
         .slide-h2 {
-            font-size: 2.2em;
-            margin-bottom: 0.2em;
+            font-size: 1.85em;
+            margin-bottom: 0.15em;
         }
 
         .lede {
@@ -127,7 +127,7 @@
         }
 
         .mono {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Cormorant Garamond', serif;
             font-size: 0.85em;
         }
 
@@ -313,7 +313,7 @@
         }
 
         .stat-number {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Cormorant Garamond', serif;
             font-size: 1.6em;
             font-weight: 700;
             color: var(--sage-lt);
@@ -349,17 +349,17 @@
         }
 
         .tier-num {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 2em;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4em;
             font-weight: 700;
             line-height: 1;
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .tier-accuracy {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9em;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.72em;
             font-weight: 500;
         }
 
@@ -382,12 +382,12 @@
         }
 
         ul.tier-list li {
-            font-size: 0.52em;
+            font-size: 0.5em;
             color: rgba(242, 237, 228, 0.65);
-            margin-bottom: 7px;
+            margin-bottom: 4px;
             padding-left: 18px;
             position: relative;
-            line-height: 1.3;
+            line-height: 1.25;
         }
 
         ul.tier-list li::before {
@@ -428,17 +428,17 @@
         }
 
         .ask-icon {
-            font-size: 0.45em;
+            font-size: 0.42em;
             letter-spacing: 0.16em;
             text-transform: uppercase;
-            margin-bottom: 14px;
+            margin-bottom: 8px;
             display: block;
         }
 
         .ask-title {
-            font-size: 0.9em;
+            font-size: 0.78em;
             font-weight: 700;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
             color: var(--bg);
         }
 
@@ -448,10 +448,10 @@
         }
 
         .ask-list li {
-            font-size: 0.52em;
+            font-size: 0.5em;
             color: rgba(242, 237, 228, 0.75);
-            line-height: 1.45;
-            margin-bottom: 8px;
+            line-height: 1.35;
+            margin-bottom: 5px;
             padding-left: 16px;
             position: relative;
         }
@@ -463,12 +463,12 @@
         }
 
         .price-badge {
-            margin-top: 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.55em;
+            margin-top: 8px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.48em;
             color: var(--straw-lt);
             border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding-top: 12px;
+            padding-top: 8px;
         }
 
         /* ── XAI Chain ───────────────────────────────────────────────────────── */
@@ -521,17 +521,115 @@
         }
 
         .step-num {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.8em;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4em;
             font-weight: 700;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
             display: block;
         }
+
+        /* ── Hide Reveal default chrome ──────────────────────────────────────── */
+        .reveal .progress,
+        .reveal .controls,
+        .reveal .slide-number { display: none !important; }
+
+        /* ── Progress bar ────────────────────────────────────────────────────── */
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--green), var(--sage));
+            transition: width 0.4s ease;
+            z-index: 9000;
+            pointer-events: none;
+        }
+
+        /* ── Slide number (top-right) ────────────────────────────────────────── */
+        .slide-num {
+            position: fixed;
+            top: 28px; right: 36px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 9px;
+            letter-spacing: 0.16em;
+            color: rgba(242, 237, 228, 0.18);
+            z-index: 500;
+        }
+
+        /* ── Fullscreen hint (top-left) ──────────────────────────────────────── */
+        .hint {
+            position: fixed;
+            top: 28px; left: 36px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 9px;
+            letter-spacing: 0.12em;
+            color: rgba(242, 237, 228, 0.15);
+            z-index: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .hint:hover { color: rgba(242, 237, 228, 0.4); }
+
+        /* ── Floating pill nav ───────────────────────────────────────────────── */
+        .nav {
+            position: fixed;
+            bottom: 32px; left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 500;
+            background: rgba(19, 16, 8, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(106, 158, 72, 0.18);
+            border-radius: 40px;
+            padding: 10px 22px;
+        }
+        .nav-btn {
+            background: none; border: none; cursor: pointer;
+            color: rgba(242, 237, 228, 0.45);
+            font-size: 18px; line-height: 1;
+            transition: color 0.2s;
+            padding: 2px 6px;
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .nav-btn:hover { color: var(--sage-lt); }
+        .nav-dots { display: flex; gap: 5px; align-items: center; }
+        .nav-dot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: rgba(242, 237, 228, 0.18);
+            transition: background 0.25s, transform 0.25s;
+            cursor: pointer;
+        }
+        .nav-dot.active { background: var(--sage); transform: scale(1.4); }
+        .nav-counter {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 10px; letter-spacing: 0.2em;
+            color: rgba(242, 237, 228, 0.35);
+            min-width: 52px; text-align: center;
+        }
+
+        /* ── Hide everything in fullscreen ───────────────────────────────────── */
+        body.is-fullscreen .nav,
+        body.is-fullscreen .hint,
+        body.is-fullscreen .slide-num { display: none; }
     </style>
 </head>
 
 <body>
     <div class="noise-overlay"></div>
+
+    <div class="progress-bar" id="progress"></div>
+    <div class="slide-num" id="slideNum">01 / 09</div>
+    <div class="hint" id="hint" onclick="toggleFullscreen()">⤢ fullscreen</div>
+
+    <nav class="nav">
+        <button class="nav-btn" id="prevBtn">←</button>
+        <div class="nav-dots" id="navDots"></div>
+        <span class="nav-counter" id="navCounter">01 / 09</span>
+        <button class="nav-btn" id="nextBtn">→</button>
+    </nav>
 
     <div class="reveal">
         <div class="slides">
@@ -559,32 +657,32 @@
                     <div class="static-team-card"
                         style="z-index: 1; transform: rotate(-8deg) translateY(20px); background-image: url('./adi.jpg');">
                         <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Adi</span>
-                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML Engineer</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML Engineer</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 2; transform: rotate(-4deg) translateY(5px); background-image: url('./suchit.jpg');">
                         <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Suchit</span>
-                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 3; transform: rotate(-1deg) translateY(-5px); box-shadow: 0 18px 36px rgba(0,0,0,0.85); background-image: url('./ari.jpg');">
                         <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Aritro</span>
-                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML Engineer</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML Engineer</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 4; transform: rotate(1deg) translateY(-5px); box-shadow: 0 18px 36px rgba(0,0,0,0.85); background-image: url('./krish.jpg');">
                         <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Krish</span>
-                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 2; transform: rotate(4deg) translateY(5px); background-image: url('./vik.png');">
                         <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Vikram</span>
-                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 1; transform: rotate(8deg) translateY(20px); background-image: url('./connor.jpg');">
                         <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Connor</span>
-                        <span style="display:block; font-family: 'JetBrains Mono', monospace; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
                     </div>
                 </div>
             </section>
@@ -600,7 +698,7 @@
                 <div class="grid-3" style="margin-top: 16px; align-items: stretch;">
                     <div class="dark-card fragment fade-up" data-fragment-index="1" style="display:flex; flex-direction:column;">
                         <div style="margin-bottom: 12px;">
-                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace;">Mastitis</span>
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Mastitis</span>
                             <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$200–$400</span>
                             <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
                         </div>
@@ -612,7 +710,7 @@
 
                     <div class="dark-card fragment fade-up" data-fragment-index="2" style="display:flex; flex-direction:column;">
                         <div style="margin-bottom: 12px;">
-                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 2px; font-family: 'JetBrains Mono', monospace;">BRD</span>
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 2px; font-family: 'Cormorant Garamond', serif;">BRD</span>
                             <span style="font-size: 0.36em; color: var(--mist); display: block; margin-bottom: 6px;">Bovine Respiratory Disease</span>
                             <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$150–$300</span>
                             <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
@@ -625,7 +723,7 @@
 
                     <div class="dark-card fragment fade-up" data-fragment-index="3" style="display:flex; flex-direction:column;">
                         <div style="margin-bottom: 12px;">
-                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace;">Lameness</span>
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Lameness</span>
                             <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$300–$500</span>
                             <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
                         </div>
@@ -739,7 +837,7 @@
 
                     <!-- Left: Architecture text diagram -->
                     <div style="flex: 1.1;" class="fragment fade-right">
-                        <div class="dark-card" style="font-family: 'JetBrains Mono', monospace; font-size: 0.48em; line-height: 2; color: rgba(242,237,228,0.65); border-left: 3px solid var(--sage);">
+                        <div class="dark-card" style="font-family: 'Cormorant Garamond', serif; font-size: 0.48em; line-height: 2; color: rgba(242,237,228,0.65); border-left: 3px solid var(--sage);">
                             <span style="color: var(--mist);">// TauronGNN · 120K params · 50 epochs</span><br>
                             <span style="color: var(--sage-lt);">Input</span>
                             <span style="color: var(--mist);">     7 features × 9 timesteps / node</span><br>
@@ -833,7 +931,7 @@
                         <h4 style="font-size: 0.52em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">What the Farmer Reads</h4>
                         <div class="alert-bubble" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
                             <div style="display:flex; justify-content:space-between; margin-bottom: 10px; padding-bottom: 8px; border-bottom:1px solid rgba(255,255,255,0.08);">
-                                <span style="font-size: 0.44em; font-family: 'JetBrains Mono', monospace; color: rgba(242,237,228,0.4);">tauron · morning report</span>
+                                <span style="font-size: 0.44em; font-family: 'Cormorant Garamond', serif; color: rgba(242,237,228,0.4);">tauron · morning report</span>
                                 <div style="display: flex; gap: 10px;">
                                     <span style="font-size:0.44em; color: var(--sage-lt);">53 OK</span>
                                     <span style="font-size:0.44em; color: var(--straw-lt);">5 Watch</span>
@@ -844,7 +942,7 @@
                                 "Cow #47 is at high risk for mastitis. Her milk yield dropped 18% and she shared a feed bunk with Cow #31, who was treated Tuesday.
                                 <strong style="color: var(--straw-lt);">Isolate and check temperature.</strong>"
                             </p>
-                            <p style="font-size: 0.4em; margin-top: 10px; color: rgba(242,237,228,0.4); font-family: 'JetBrains Mono', monospace;">
+                            <p style="font-size: 0.4em; margin-top: 10px; color: rgba(242,237,228,0.4); font-family: 'Cormorant Garamond', serif;">
                                 Ollama Mistral-7B · local inference · data sovereign
                             </p>
                         </div>
@@ -859,9 +957,9 @@
             <section data-transition="convex">
                 <span class="eyebrow">Data Strategy</span>
                 <h2 class="slide-h2">Meets Farmers Where They Are</h2>
-                <p class="lede" style="margin-bottom: 18px;">No new hardware required to start. A weekly CSV export of existing parlor records is enough. Accuracy grows as data grows.</p>
+                <p class="lede" style="margin-bottom: 0.4em;">No new hardware required to start. A weekly CSV export of existing parlor records is enough. Accuracy grows as data grows.</p>
 
-                <div style="display: flex; gap: 14px; margin-top: 6px; align-items: stretch;">
+                <div style="display: flex; gap: 12px; margin-top: 0.3em; align-items: stretch; flex: 1;">
 
                     <!-- Tier 1 -->
                     <div class="tier-col dark-card dark-card-highlight fragment fade-up" data-fragment-index="1">
@@ -922,7 +1020,7 @@
                     </div>
                 </div>
 
-                <p class="fragment fade-up" style="font-size: 0.5em; color: var(--mist); margin-top: 14px; font-style: italic;" data-fragment-index="4">
+                <p class="fragment fade-up" style="font-size: 0.48em; color: var(--mist); margin-top: 0.5em; font-style: italic;" data-fragment-index="4">
                     Accuracy improves as farmers add data sources — creating a natural upsell path without forcing hardware spend upfront.
                 </p>
             </section>
@@ -968,11 +1066,11 @@
 
                 <span class="eyebrow gold">Closing</span>
                 <h2 class="slide-h2">The Ask</h2>
-                <p class="lede" style="margin-bottom: 20px;">
+                <p class="lede" style="margin-bottom: 0.4em;">
                     Built in 36 hours at Cornell. Ready to pilot on real farms this spring.
                 </p>
 
-                <div style="display: flex; gap: 16px; align-items: stretch;">
+                <div style="display: flex; gap: 12px; align-items: stretch; flex: 1;">
 
                     <!-- What We Built -->
                     <div class="ask-card dark-card fragment fade-up" data-fragment-index="1">
@@ -1017,8 +1115,8 @@
                             <li>Tier 1: $49/mo — unlimited manual records</li>
                             <li>Tier 2: $149/mo — automated milking integrations</li>
                         </ul>
-                        <div style="margin-top: 12px; padding: 12px 14px; background: rgba(201,152,58,0.08); border-radius: 4px; border: 1px solid rgba(201,152,58,0.2);">
-                            <p style="font-size: 0.52em; color: rgba(242,237,228,0.75); line-height: 1.5; margin: 0;">
+                        <div style="margin-top: 0.4em; padding: 0.4em 0.55em; background: rgba(201,152,58,0.08); border-radius: 4px; border: 1px solid rgba(201,152,58,0.2);">
+                            <p style="font-size: 0.5em; color: rgba(242,237,228,0.75); line-height: 1.4; margin: 0;">
                                 At $49/mo and a 60-cow herd saving $4–9K/year, the payback period is under <strong style="color: var(--straw-lt);">2 weeks.</strong>
                             </p>
                         </div>
@@ -1042,9 +1140,8 @@
             backgroundTransition: 'fade',
             center: false,
             controls: false,
-            progress: true,
-            slideNumber: 'c/t',
-            // Explicit canvas: Reveal CSS-transforms the whole slide to fit any screen
+            progress: false,
+            slideNumber: false,
             width: 1280,
             height: 800,
             margin: 0.04,
@@ -1053,7 +1150,47 @@
             backgroundColor: '#131008',
         });
 
-        deck.initialize();
+        deck.initialize().then(() => {
+            const total = deck.getTotalSlides();
+            const pad = n => String(n).padStart(2, '0');
+            const dots = document.getElementById('navDots');
+
+            // Build dots
+            for (let i = 0; i < total; i++) {
+                const d = document.createElement('div');
+                d.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                d.onclick = () => deck.slide(i);
+                dots.appendChild(d);
+            }
+
+            function updateNav() {
+                const idx = deck.getIndices().h;
+                document.getElementById('progress').style.width = `${((idx + 1) / total) * 100}%`;
+                const label = `${pad(idx + 1)} / ${pad(total)}`;
+                document.getElementById('slideNum').textContent = label;
+                document.getElementById('navCounter').textContent = label;
+                document.querySelectorAll('.nav-dot').forEach((d, i) =>
+                    d.classList.toggle('active', i === idx));
+            }
+
+            deck.on('slidechanged', updateNav);
+            updateNav();
+
+            document.getElementById('prevBtn').onclick = () => deck.prev();
+            document.getElementById('nextBtn').onclick = () => deck.next();
+        });
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
+        });
     </script>
 </body>
 
