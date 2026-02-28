@@ -85,9 +85,9 @@ const HerdMap = () => {
         if (isMobile || !svgRef.current || !herdData) return;
         if (typeof d3 === 'undefined') return;
 
-        const width  = svgRef.current.clientWidth;
+        const width = svgRef.current.clientWidth;
         const height = svgRef.current.clientHeight || 400;
-        const n      = herdData.nodes.length;
+        const n = herdData.nodes.length;
 
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
@@ -117,11 +117,26 @@ const HerdMap = () => {
             .filter(d => d.samePen || d.eitherAlert)
             .map(d => ({ ...d }));
 
+        // ── Flag ok-status nodes that neighbour an alert cow ─────────────
+        // These get coloured yellow to show indirect contact risk.
+        const alertIds = new Set(nodes.filter(d => d.risk === 'high').map(d => d.id));
+        const nearAlertIds = new Set();
+        links.forEach(l => {
+            const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+            const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
+            if (alertIds.has(srcId)) nearAlertIds.add(tgtId);
+            if (alertIds.has(tgtId)) nearAlertIds.add(srcId);
+        });
+        // Don't re-colour nodes that are already alert or watch
+        nodes.forEach(d => {
+            if (d.risk === 'ok' && nearAlertIds.has(d.id)) d.nearAlert = true;
+        });
+
         // ── Pen cluster centres (6 pens, 2 rows × 3 cols) ─────────────────
         // group is 1-indexed (Math.floor(cowId/10)+1), map to grid position.
         const PEN_COLS = 3, PEN_ROWS = 2;
         const padX = width * 0.18, padY = height * 0.20;
-        const colStep = PEN_COLS > 1 ? (width  - padX * 2) / (PEN_COLS - 1) : 0;
+        const colStep = PEN_COLS > 1 ? (width - padX * 2) / (PEN_COLS - 1) : 0;
         const rowStep = PEN_ROWS > 1 ? (height - padY * 2) / (PEN_ROWS - 1) : 0;
         const penCentre = (group) => {
             const g = Math.max(1, Math.min(6, group)) - 1;
@@ -129,7 +144,7 @@ const HerdMap = () => {
         };
 
         // ── Node radii — smaller at 60-cow scale ──────────────────────────
-        const R_ALERT  = 11;   // was 14 — still prominent, less overlap
+        const R_ALERT = 11;   // was 14 — still prominent, less overlap
         const R_NORMAL = 6;    // was 8  — readable dot without crowding
 
         // ── Force simulation — tuned for 60 nodes ─────────────────────────
@@ -138,18 +153,30 @@ const HerdMap = () => {
         // link: shorter distance + lower strength avoids rigidity inside pens
         // collide: generous radius prevents label overlap
         const simulation = d3.forceSimulation(nodes)
-            .force("link",   d3.forceLink(links).id(d => d.id).distance(n > 20 ? 28 : 50).strength(0.20))
+            .force("link", d3.forceLink(links).id(d => d.id).distance(n > 20 ? 28 : 50).strength(0.20))
             .force("charge", d3.forceManyBody().strength(n > 20 ? -80 : -150).distanceMax(120))
             .force("center", d3.forceCenter(width / 2, height / 2).strength(0.03))
-            .force("collide",d3.forceCollide().radius(d => (d.riskScore > 0.70 ? R_ALERT : R_NORMAL) + 6).strength(0.9))
-            .force("penX",   d3.forceX(d => penCentre(d.group).x).strength(0.35))
-            .force("penY",   d3.forceY(d => penCentre(d.group).y).strength(0.35))
+            .force("collide", d3.forceCollide().radius(d => (d.riskScore > 0.70 ? R_ALERT : R_NORMAL) + 6).strength(0.9))
+            .force("penX", d3.forceX(d => penCentre(d.group).x).strength(0.35))
+            .force("penY", d3.forceY(d => penCentre(d.group).y).strength(0.35))
             .alphaDecay(0.02);
 
-        const getColor = (risk) => {
-            if (risk === 'high') return '#E07050';
-            if (risk === 'warn') return '#C9983A';
-            return '#6A9E48';
+        // ── Flag nodes that neighbour a red (high risk) cow ──────────────
+        // These get coloured yellow to show indirect contact risk.
+        const redIds = new Set(nodes.filter(d => d.risk === 'high').map(d => d.id));
+        const nearRedIds = new Set();
+        links.forEach(l => {
+            const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+            const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
+            if (redIds.has(srcId)) nearRedIds.add(tgtId);
+            if (redIds.has(tgtId)) nearRedIds.add(srcId);
+        });
+
+        const getColor = (d) => {
+            if (d.risk === 'high') return '#E07050'; // Red
+            if (nearRedIds.has(d.id)) return '#C9983A'; // Yellow - neighbor of red
+            if (d.risk === 'warn') return '#C9983A'; // Yellow - actual watch status
+            return '#6A9E48'; // Green
         };
 
         // ── Pen label backgrounds (rendered before links/nodes) ──────────
@@ -157,8 +184,12 @@ const HerdMap = () => {
         const penLabelG = svg.append("g").attr("class", "pen-labels");
         penGroups.forEach(g => {
             const c = penCentre(g);
+            const isBottomRow = g > 3; // groups 4-6 = Pens D-F
+            const yOffset = isBottomRow
+                ? (n > 20 ? 60 : 45)      // below cluster
+                : -(n > 20 ? 50 : 35);    // above cluster
             penLabelG.append("text")
-                .attr("x", c.x).attr("y", c.y - (n > 20 ? 50 : 35))
+                .attr("x", c.x).attr("y", c.y + yOffset)
                 .attr("text-anchor", "middle")
                 .text('Pen ' + PEN_LABELS[g - 1])
                 .style("font-family", "Cormorant Garamond, serif")
@@ -194,7 +225,7 @@ const HerdMap = () => {
             .attr("stroke", "#FAF7F2")
             .attr("stroke-width", d => d.riskScore > 0.70 ? 1.5 : 1)
             .attr("r", d => d.riskScore > 0.70 ? R_ALERT : R_NORMAL)
-            .attr("fill", d => getColor(d.risk))
+            .attr("fill", d => getColor(d))
             .style("filter", d => d.riskScore > 0.70 ? "url(#node-glow)" : "none");
 
         // Labels only on alert cows — avoids crowding at 60 nodes
@@ -242,7 +273,7 @@ const HerdMap = () => {
                 .attr("y2", d => d.target.y);
             node
                 .attr("transform", d => {
-                    d.x = Math.max(margin, Math.min(width  - margin, d.x));
+                    d.x = Math.max(margin, Math.min(width - margin, d.x));
                     d.y = Math.max(margin, Math.min(height - margin, d.y));
                     return `translate(${d.x},${d.y})`;
                 });
