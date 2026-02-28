@@ -35,10 +35,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torch_geometric.data import Data
-from torch_geometric.nn import SAGEConv
+
+from tauron_pipeline import TauronGNN
 
 logger = logging.getLogger(__name__)
 
@@ -91,52 +90,9 @@ _DEMO_SCENARIO = {
 
 
 # ---------------------------------------------------------------------------
-# Model definition — must match training architecture in tauron_ml.ipynb
-# ---------------------------------------------------------------------------
-
-class TauronGNN(nn.Module):
-    """
-    GraphSAGE + GRU model for multi-disease dairy cow risk prediction.
-
-    Forward pass:
-        1. GRU encodes each cow's 7-day feature window → node embedding [N, H]
-        2. Two SAGEConv layers aggregate 2-hop neighbourhood information
-        3. Linear decoder maps to 3 disease risk scores per cow
-
-    Output: sigmoid-activated [N, 3] tensor — values in [0, 1].
-    """
-
-    def __init__(
-        self,
-        n_features: int = N_FEATURES,
-        window: int = WINDOW_DAYS,
-        hidden: int = 128,
-        n_diseases: int = N_DISEASES,
-        dropout: float = 0.3,
-    ):
-        super().__init__()
-        self.gru     = nn.GRU(input_size=n_features, hidden_size=hidden,
-                              num_layers=1, batch_first=True)
-        self.sage1   = SAGEConv(hidden, hidden)
-        self.sage2   = SAGEConv(hidden, hidden)
-        self.norm1   = nn.LayerNorm(hidden)
-        self.norm2   = nn.LayerNorm(hidden)
-        self.drop    = nn.Dropout(dropout)
-        self.decoder = nn.Linear(hidden, n_diseases)
-
-    def forward(self, data: Data) -> torch.Tensor:
-        # 1. Temporal: GRU over 7-day window → last hidden state
-        _, h_n = self.gru(data.x_seq)            # h_n: [1, N, H]
-        h = h_n.squeeze(0)                        # [N, H]
-        # 2. Graph: 2-hop message passing
-        h = self.drop(F.relu(self.norm1(self.sage1(h, data.edge_index))))
-        h = self.drop(F.relu(self.norm2(self.sage2(h, data.edge_index))))
-        # 3. Decode → three risk scores per cow
-        return torch.sigmoid(self.decoder(h))     # [N, 3]
-
-
-# ---------------------------------------------------------------------------
 # Model loading — singleton, lazy-initialised
+# TauronGNN is imported from tauron_pipeline (single source of truth).
+# forward() returns raw logits [N, 3]; apply torch.sigmoid() at call sites.
 # ---------------------------------------------------------------------------
 
 _model = None
@@ -398,7 +354,7 @@ def run_inference(graph_data: Data) -> dict:
     model = _load_model()
 
     with torch.no_grad():
-        risk = model(graph_data.to(DEVICE)).cpu()   # [N, 3]
+        risk = torch.sigmoid(model(graph_data.to(DEVICE))).cpu()   # [N, 3]
 
     cows = []
     for i, cow_id in enumerate(graph_data.cow_ids):
@@ -491,7 +447,7 @@ def get_gnn_explainer_output(cow_id: int, graph_data: Data) -> dict:
     g       = graph_data.clone().to(DEVICE)
     g.x_seq = g.x_seq.detach().clone().requires_grad_(True)
 
-    risk    = model(g)                              # [N, 3]
+    risk    = torch.sigmoid(model(g))               # [N, 3]
     dom_idx = int(risk[cow_idx].argmax().item())
     # Demo staging: force mastitis attribution for the demo cow
     if cow_id == _DEMO_SCENARIO["cow_id"]:
@@ -521,7 +477,7 @@ def get_gnn_explainer_output(cow_id: int, graph_data: Data) -> dict:
     ]
 
     with torch.no_grad():
-        all_scores = model(graph_data.to(DEVICE))[cow_idx].cpu()
+        all_scores = torch.sigmoid(model(graph_data.to(DEVICE)))[cow_idx].cpu()
 
     # Demo staging: override disease scores for the demo cow
     if cow_id == _DEMO_SCENARIO["cow_id"]:
