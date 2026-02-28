@@ -214,9 +214,12 @@ const DataEntryLog = () => {
                                 <div>
                                     <label style={labelStyle}>Pen / Location</label>
                                     <select name="pen" style={{ ...inputStyle, background: 'var(--card)' }}>
-                                        <option value="A1">Pen A1</option>
-                                        <option value="A2">Pen A2</option>
-                                        <option value="B1">Pen B1</option>
+                                        <option value="A">Pen A</option>
+                                        <option value="B">Pen B</option>
+                                        <option value="C">Pen C</option>
+                                        <option value="D">Pen D</option>
+                                        <option value="E">Pen E</option>
+                                        <option value="F">Pen F</option>
                                         <option value="Hospital">Hospital Pen</option>
                                     </select>
                                 </div>
@@ -227,6 +230,7 @@ const DataEntryLog = () => {
                                         <option value="none">None - Healthy</option>
                                         <option value="lame">Lameness observed</option>
                                         <option value="mastitis">Mastitis symptoms</option>
+                                        <option value="brd">Bovine Respiratory Disease</option>
                                         <option value="calving">Calving</option>
                                         <option value="other">Other</option>
                                     </select>

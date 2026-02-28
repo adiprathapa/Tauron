@@ -230,6 +230,16 @@ def _build_graph_from_df(
         if "bunk_id" in today.columns:
             bunk_groups.setdefault(int(row["bunk_id"]), []).append(idx)
 
+    # Edges: pen cliques (w=1.0) + bunk co-visit edges (w=co-visit frequency)
+    today       = win[win["date"] == snap]
+    pen_groups  = {}
+    bunk_groups = {}
+    for _, row in today.iterrows():
+        idx = cow_to_idx[row["cow_id"]]
+        pen_groups.setdefault(int(row["pen_id"]), []).append(idx)
+        if "bunk_id" in today.columns:
+            bunk_groups.setdefault(int(row["bunk_id"]), []).append(idx)
+
     all_src, all_dst, all_w = [], [], []
     for members in pen_groups.values():
         for i in members:
