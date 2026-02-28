@@ -33,8 +33,8 @@ numpy==1.26.3
 scipy==1.13.1
 pandas==2.2.1       # farm DataFrame processing in graph_utils.py
 
-# Optional: Anthropic Claude API (cloud fallback for LLM when Ollama is unavailable)
-# anthropic>=0.25.0  # uncomment to enable; set ANTHROPIC_API_KEY in environment
+# Anthropic Claude API — used for voice transcript parsing (/api/voice)
+anthropic>=0.25.0   # set ANTHROPIC_API_KEY in environment
 
 # Testing
 pytest==8.1.1

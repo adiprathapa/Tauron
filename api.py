@@ -14,18 +14,39 @@ Usage:
     uvicorn api:app --reload
 """
 
-import io
 import json
-from typing import Optional
+import os
+from typing import Optional, Union
 
+import httpx
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 import tauron_pipeline as tp
 from backend.llm_engine import generate_alert
+
+
+# ── Data entry models ──────────────────────────────────────────────────────────
+
+class IngestPayload(BaseModel):
+    cow_id: Union[int, str]
+    yield_kg: Optional[float] = None
+    pen: Optional[str] = None
+    health_event: Optional[str] = "none"
+    notes: Optional[str] = ""
+    via_voice: Optional[bool] = False
+
+
+class VoicePayload(BaseModel):
+    transcript: str
+
+
+# In-memory log — resets on server restart
+_ingest_log: list = []
 
 
 def _sanitize(obj):
@@ -182,9 +203,79 @@ async def explain(cow_id: int):
 
 
 @app.post("/api/ingest")
-async def ingest(file: Optional[UploadFile] = None, tier: int = 1):
-    """Ingest farm data via CSV upload."""
-    if file is None:
-        raise HTTPException(400, "provide a CSV file")
-    df = pd.read_csv(io.StringIO((await file.read()).decode()))
-    return {"status": "ok", "rows": len(df), "tier": tier}
+async def ingest(payload: IngestPayload):
+    """Accept a single manual or voice-parsed farm observation. Stores in-memory."""
+    from datetime import datetime
+    record = payload.model_dump()
+    record["timestamp"] = datetime.utcnow().isoformat()
+    _ingest_log.insert(0, record)
+    return {"status": "ok", "rows": 1, "total": len(_ingest_log)}
+
+
+@app.get("/api/logs")
+async def get_logs():
+    """Return in-memory ingest log for the DataEntryLog component."""
+    return {"logs": _ingest_log}
+
+
+@app.post("/api/voice")
+async def voice_to_data(payload: VoicePayload):
+    """
+    Parse a farmer's plain-English note into structured cow observations.
+    Uses local Ollama/Mistral (no API key required). Handles multiple cows.
+    Returns: { cows: [{cow_id, yield_kg, pen, health_event, notes},...], confidence, raw_transcript }
+    """
+    prompt = (
+        "You are a farm data assistant. Extract dairy cow observations from the farmer's note. "
+        "Output ONLY valid JSON matching this exact schema — no extra text:\n"
+        '{"cows":[{"cow_id":"string or null","yield_kg":"number or null",'
+        '"pen":"A1|A2|B1|Hospital|null","health_event":"none|lame|mastitis|calving|off_feed|other",'
+        '"notes":"string"}],"confidence":0.0}\n\n'
+        "Rules:\n"
+        "- One object per cow mentioned.\n"
+        "- cow_id: tag/number/name (e.g. \"47\", \"A\", \"Bessie\"); null if unclear.\n"
+        "- yield_kg: number only if explicitly stated; null if vague (\"less milk\", \"not much\").\n"
+        "- pen: exact value from list or null.\n"
+        "- health_event: lame=limping/hoof, mastitis=udder, calving=birth, off_feed=not eating, other=other concern, none=healthy.\n"
+        "- notes: brief summary of anything not captured above.\n"
+        "- confidence: 0.0-1.0.\n\n"
+        f'Farmer\'s note: "{payload.transcript}"\n\n'
+        "JSON output:"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": "mistral",
+                    "prompt": prompt,
+                    "stream": False,
+                    "format": "json",          # Ollama JSON mode — constrains output to valid JSON
+                    "options": {"temperature": 0.1, "num_predict": 400},
+                },
+            )
+            response.raise_for_status()
+            raw = response.json()["response"].strip()
+
+    except (httpx.ConnectError, httpx.TimeoutException):
+        raise HTTPException(
+            status_code=503,
+            detail="Ollama is not running. Start it with: ollama serve"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Ollama error: {e}")
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        raw = raw.strip("` \n")
+        if raw.startswith("json"):
+            raw = raw[4:]
+        parsed = json.loads(raw)
+
+    if "cows" not in parsed:
+        parsed = {"cows": [parsed], "confidence": parsed.get("confidence", 1.0)}
+
+    parsed["raw_transcript"] = payload.transcript
+    return parsed

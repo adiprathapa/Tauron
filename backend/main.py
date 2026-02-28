@@ -15,8 +15,10 @@ Mock mode:
 CORS: allow_origins=["*"] is intentional for localhost dev — lock down if deployed.
 """
 
+import json
+import os
 from datetime import date, datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
@@ -37,14 +39,14 @@ class CowSummary(BaseModel):
     id: int
     risk_score: float
     status: str                      # "alert" | "watch" | "ok"
-    top_feature: str | None          # highest-gradient sensor signal; null for "ok" cows
-    dominant_disease: str | None     # (new) "mastitis" | "brd" | "lameness"; null if ok
-    all_risks: dict | None           # (new) {disease: score}; null if ok
+    top_feature: Optional[str]       # highest-gradient sensor signal; null for "ok" cows
+    dominant_disease: Optional[str]  # (new) "mastitis" | "brd" | "lameness"; null if ok
+    all_risks: Optional[dict]        # (new) {disease: score}; null if ok
 
 
 class HerdResponse(BaseModel):
-    cows: list[CowSummary]
-    adjacency: list[list[int]]
+    cows: List[CowSummary]
+    adjacency: List[List[int]]
 
 
 class ExplainResponse(BaseModel):
@@ -53,17 +55,22 @@ class ExplainResponse(BaseModel):
     top_edge: dict                   # {"from": int, "to": int, "weight": float}
     top_feature: str                 # e.g. "milk_yield_kg"
     feature_delta: float             # signed change vs 6-day baseline
-    dominant_disease: str | None     # (new) primary disease risk
-    all_risks: dict | None           # (new) full disease breakdown
+    dominant_disease: Optional[str]  # (new) primary disease risk
+    all_risks: Optional[dict]        # (new) full disease breakdown
     alert_text: str                  # plain-English farmer alert
 
 
 class IngestPayload(BaseModel):
-    cow_id: int
+    cow_id: Union[int, str]          # numeric tag (47) or named tag ("A", "Bessie")
     yield_kg: Optional[float] = None
     pen: Optional[str] = None
-    health_event: Optional[str] = "none"
+    health_event: Optional[str] = "none"   # none|lame|mastitis|calving|off_feed|other
     notes: Optional[str] = ""
+    via_voice: Optional[bool] = False
+
+
+class VoicePayload(BaseModel):
+    transcript: str
 
 
 # In-memory log — resets on server restart (fine for hackathon demo)
@@ -237,3 +244,82 @@ async def ingest(payload: IngestPayload):
     # Prepend instead of append to show newest first
     _ingest_log.insert(0, record)
     return {"status": "ok", "rows": 1, "total": len(_ingest_log)}
+
+
+@app.post("/api/voice")
+async def voice_to_data(payload: VoicePayload):
+    """
+    Parse a farmer's voice/text note into structured farm data using Claude.
+
+    Handles multiple cows in a single note. Returns:
+      { cows: [{cow_id, yield_kg, pen, health_event, notes}, ...], confidence, raw_transcript }
+
+    Requires ANTHROPIC_API_KEY environment variable.
+    """
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not set")
+
+    try:
+        import anthropic
+    except ImportError:
+        raise HTTPException(status_code=503, detail="anthropic package not installed; run: pip install anthropic")
+
+    prompt = f"""You are a farm data assistant for dairy farmers. Extract structured observations from this farmer's note. There may be ONE or MULTIPLE cows mentioned.
+
+Return ONLY a valid JSON object with exactly this structure:
+{{
+  "cows": [
+    {{
+      "cow_id": string or null,
+      "yield_kg": float or null,
+      "pen": string or null,
+      "health_event": "none" | "lame" | "mastitis" | "calving" | "off_feed" | "other",
+      "notes": string
+    }}
+  ],
+  "confidence": float
+}}
+
+Rules:
+- Create ONE entry per cow mentioned. If only one cow, the array has one element.
+- cow_id: the cow tag, number, or name ("47", "A", "Bessie"); null if unclear.
+- yield_kg: only if a specific number is given; null if vague ("less milk", "not much").
+- pen: "A1", "A2", "B1", or "Hospital"; null if not mentioned.
+- health_event: "lame" for limping/hoof, "mastitis" for udder issues, "calving" for birth, "off_feed" for not eating/reduced appetite, "other" for other concerns, "none" if healthy.
+- notes: concise summary of anything not captured above; empty string if nothing extra.
+- confidence: 0.0–1.0 overall confidence across all cows.
+
+Examples:
+  "Cow A was fine, 24 litres. B gave 18 and looked lame. C is in hospital."
+  → {{"cows":[{{"cow_id":"A","yield_kg":24,"pen":null,"health_event":"none","notes":""}},{{"cow_id":"B","yield_kg":18,"pen":null,"health_event":"lame","notes":""}},{{"cow_id":"C","yield_kg":null,"pen":"Hospital","health_event":"none","notes":""}}],"confidence":0.95}}
+
+  "47 wasn't eating much and milk was low"
+  → {{"cows":[{{"cow_id":"47","yield_kg":null,"pen":null,"health_event":"off_feed","notes":"reduced milk yield"}}],"confidence":0.9}}
+
+Farmer's note: "{payload.transcript}"
+
+Return only the JSON object, no markdown, no explanation."""
+
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=512,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = message.content[0].text.strip()
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        raw = raw.strip("` \n")
+        if raw.startswith("json"):
+            raw = raw[4:]
+        parsed = json.loads(raw)
+
+    # Normalise: if Claude returned a flat single-cow object, wrap it
+    if "cows" not in parsed:
+        parsed = {"cows": [parsed], "confidence": parsed.get("confidence", 1.0)}
+
+    parsed["raw_transcript"] = payload.transcript
+    return parsed
