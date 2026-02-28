@@ -8,22 +8,32 @@ const HerdMap = () => {
 
     // Generate mock graph data once
     if (!graphData.current) {
-        const nodes = Array.from({ length: 40 }, (_, i) => ({
-            id: `Cow ${2000 + i}`,
-            group: Math.floor(Math.random() * 4) + 1,
-            risk: Math.random() > 0.8 ? 'high' : (Math.random() > 0.5 ? 'warn' : 'ok'),
-            pen: `Pen ${String.fromCharCode(65 + Math.floor(i / 10))}`
-        }));
+        const nodes = Array.from({ length: 40 }, (_, i) => {
+            const riskValue = Math.random();
+            return {
+                id: `Cow ${2000 + i}`,
+                group: Math.floor(Math.random() * 4) + 1,
+                riskLevel: riskValue,
+                risk: riskValue > 0.70 ? 'high' : (riskValue > 0.4 ? 'warn' : 'ok'),
+                pen: `Pen ${String.fromCharCode(65 + Math.floor(i / 10))}`
+            };
+        });
 
         const links = [];
         for (let i = 0; i < 60; i++) {
             let source = Math.floor(Math.random() * 40);
             let target = Math.floor(Math.random() * 40);
             if (source !== target) {
+                // Determine transmission if both nodes are high risk
+                const sourceNode = nodes[source];
+                const targetNode = nodes[target];
+                const isTransmission = (sourceNode.riskLevel > 0.70 || targetNode.riskLevel > 0.70) && Math.random() > 0.6;
+
                 links.push({
                     source: `Cow ${2000 + source}`,
                     target: `Cow ${2000 + target}`,
-                    value: Math.random()
+                    value: Math.random(),
+                    isTransmission
                 });
             }
         }
@@ -49,15 +59,47 @@ const HerdMap = () => {
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
 
+        const defs = svg.append("defs");
+
+        // Glow filter for edges
+        const glowFilter = defs.append("filter")
+            .attr("id", "edge-glow")
+            .attr("x", "-50%")
+            .attr("y", "-50%")
+            .attr("width", "200%")
+            .attr("height", "200%");
+        glowFilter.append("feGaussianBlur")
+            .attr("stdDeviation", "2.5")
+            .attr("result", "coloredBlur");
+        const feMerge = glowFilter.append("feMerge");
+        feMerge.append("feMergeNode").attr("in", "coloredBlur");
+        feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
+        // Glow filter for nodes
+        const nodeGlowFilter = defs.append("filter")
+            .attr("id", "node-glow")
+            .attr("x", "-50%")
+            .attr("y", "-50%")
+            .attr("width", "200%")
+            .attr("height", "200%");
+        nodeGlowFilter.append("feGaussianBlur")
+            .attr("stdDeviation", "4")
+            .attr("result", "coloredBlur");
+        const feMergeNodeGlow = nodeGlowFilter.append("feMerge");
+        feMergeNodeGlow.append("feMergeNode").attr("in", "coloredBlur");
+        feMergeNodeGlow.append("feMergeNode").attr("in", "SourceGraphic");
+
         // Create a deep copy for simulation because D3 mutates properties
         const nodes = graphData.current.nodes.map(d => ({ ...d }));
         const links = graphData.current.links.map(d => ({ ...d }));
 
         const simulation = d3.forceSimulation(nodes)
             .force("link", d3.forceLink(links).id(d => d.id).distance(60))
-            .force("charge", d3.forceManyBody().strength(-150))
+            .force("charge", d3.forceManyBody().strength(-120))
             .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collide", d3.forceCollide().radius(20));
+            .force("collide", d3.forceCollide().radius(20))
+            .force("x", d3.forceX(width / 2).strength(0.08))
+            .force("y", d3.forceY(height / 2).strength(0.08));
 
         // Colors based on CSS variables
         const getColor = (risk) => {
@@ -67,25 +109,40 @@ const HerdMap = () => {
         };
 
         const link = svg.append("g")
-            .attr("stroke", "rgba(216, 208, 196, 0.4)") // --line
-            .attr("stroke-opacity", 0.6)
             .selectAll("line")
             .data(links)
             .join("line")
-            .attr("stroke-width", d => Math.max(0.5, Math.sqrt(d.value) * 2));
+            .attr("stroke", d => d.isTransmission ? "#E07050" : "rgba(216, 208, 196, 0.4)")
+            .attr("stroke-opacity", d => d.isTransmission ? 0.9 : 0.6)
+            .attr("stroke-width", d => d.isTransmission ? 2.5 : Math.max(0.5, Math.sqrt(d.value) * 2))
+            .style("filter", d => d.isTransmission ? "url(#edge-glow)" : "none");
 
         const node = svg.append("g")
-            .attr("stroke", "#FAF7F2") // --card
-            .attr("stroke-width", 1.5)
-            .selectAll("circle")
+            .selectAll("g")
             .data(nodes)
-            .join("circle")
-            .attr("r", d => d.risk === 'high' ? 12 : 8)
-            .attr("fill", d => getColor(d.risk))
+            .join("g")
             .style("cursor", "pointer")
             .on("click", (event, d) => {
                 setSelectedNode(d);
             });
+
+        node.append("circle")
+            .attr("stroke", "#FAF7F2") // --card
+            .attr("stroke-width", 1.5)
+            .attr("r", d => d.riskLevel > 0.70 ? 14 : 8)
+            .attr("fill", d => getColor(d.risk))
+            .style("filter", d => d.riskLevel > 0.70 ? "url(#node-glow)" : "none");
+
+        node.filter(d => d.riskLevel > 0.70)
+            .append("text")
+            .text(d => d.id.replace('Cow ', ''))
+            .attr("text-anchor", "middle")
+            .attr("dy", "0.3em")
+            .attr("fill", "#FAF7F2")
+            .style("font-size", "9px")
+            .style("font-family", "JetBrains Mono, monospace")
+            .style("font-weight", "bold")
+            .style("pointer-events", "none");
 
         node.call(d3.drag()
             .on("start", (event, d) => {
@@ -105,15 +162,15 @@ const HerdMap = () => {
 
         // Pulse high risk
         function pulse() {
-            svg.selectAll("circle").filter(d => d.risk === 'high')
+            svg.selectAll("circle").filter(d => d.riskLevel > 0.70)
                 .transition()
-                .duration(1000)
-                .attr("r", 15)
-                .attr("stroke-width", 3)
-                .attr("stroke", "rgba(224, 112, 80, 0.4)")
+                .duration(1200)
+                .attr("r", 17)
+                .attr("stroke-width", 4)
+                .attr("stroke", "rgba(224, 112, 80, 0.7)")
                 .transition()
-                .duration(1000)
-                .attr("r", 12)
+                .duration(1200)
+                .attr("r", 14)
                 .attr("stroke-width", 1.5)
                 .attr("stroke", "#FAF7F2")
                 .on("end", pulse);
@@ -131,8 +188,11 @@ const HerdMap = () => {
                 .attr("y2", d => d.target.y);
 
             node
-                .attr("cx", d => d.x = Math.max(15, Math.min(width - 15, d.x)))
-                .attr("cy", d => d.y = Math.max(15, Math.min(height - 15, d.y)));
+                .attr("transform", d => {
+                    d.x = Math.max(15, Math.min(width - 15, d.x));
+                    d.y = Math.max(15, Math.min(height - 15, d.y));
+                    return `translate(${d.x},${d.y})`;
+                });
         });
 
         return () => simulation.stop();
@@ -171,13 +231,22 @@ const HerdMap = () => {
                                         background: getColor(cow.risk),
                                         borderRadius: '8px',
                                         cursor: 'pointer',
-                                        boxShadow: cow.risk === 'high' ? '0 0 12px rgba(224, 112, 80, 0.5)' : 'none',
-                                        opacity: cow.risk === 'ok' ? 0.4 : 1,
+                                        boxShadow: cow.riskLevel > 0.70 ? '0 0 12px rgba(224, 112, 80, 0.6)' : 'none',
+                                        opacity: cow.riskLevel <= 0.4 ? 0.4 : 1,
                                         transition: 'all 0.2s',
-                                        animation: cow.risk === 'high' ? 'pulse-ring 2s infinite' : 'none'
+                                        animation: cow.riskLevel > 0.70 ? 'pulse-ring 2s infinite' : 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#FAF7F2',
+                                        fontFamily: 'JetBrains Mono, monospace',
+                                        fontSize: '10px',
+                                        fontWeight: 'bold'
                                     }}
                                     title={cow.id}
-                                />
+                                >
+                                    {cow.riskLevel > 0.70 ? cow.id.replace('Cow ', '') : ''}
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -201,18 +270,19 @@ const HerdMap = () => {
             </div>
 
             {selectedNode && (
-                <div style={{
+                <div className="panel-enter-active" style={{
                     position: 'absolute',
                     bottom: '40px',
                     left: '20px',
                     right: '20px',
                     background: 'var(--dark-bg)',
                     borderRadius: '12px',
-                    padding: '20px',
+                    padding: '24px',
                     color: 'var(--bg)',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-                    border: '1px solid #333',
-                    zIndex: 10
+                    boxShadow: selectedNode.riskLevel > 0.70 ? '0 0 30px rgba(224, 112, 80, 0.3)' : '0 20px 40px rgba(0,0,0,0.3)',
+                    border: selectedNode.riskLevel > 0.70 ? '1px solid var(--danger)' : '1px solid #333',
+                    zIndex: 10,
+                    transformOrigin: 'bottom center'
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                         <div>
