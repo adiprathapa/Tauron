@@ -1,23 +1,22 @@
-# Tauron ML — Python 3.14
+# Tauron ML — Python 3.9
 # Install: pip install -r requirements.txt
 # PyTorch (CPU): pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 # Then: pip install -r requirements.txt
 
 # Core ML
-torch==2.10.0
-torchvision==0.25.0
-torchaudio==2.10.0
-torch-geometric==2.7.0
+torch==2.8.0
+torchvision==0.23.0
+torchaudio==2.8.0
+torch-geometric==2.6.1
 
 # Data
-numpy==2.4.2
-pandas==3.0.1
+numpy==2.0.2
+pandas==2.3.3
 scikit-learn==1.6.1
 networkx==3.2.1
 
-# Visualisation (notebooks only — requires freetype system lib to build from source)
-# Install separately if needed: pip install matplotlib seaborn
-matplotlib==3.10.3
+# Visualisation
+matplotlib==3.9.4
 seaborn==0.13.2
 
 # Notebook

@@ -82,6 +82,55 @@ else
   info "Ollama not running (OK if USE_MOCK=True — alerts will use template fallback)"
 fi
 
+# 7. /api/impact returns 200 with required keys
+IMPACT=$(curl -s "$BASE/api/impact")
+IMPACT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/impact")
+if [ "$IMPACT_STATUS" = "200" ]; then
+  pass "GET /api/impact returns 200"
+  DOSES=$(echo "$IMPACT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('antibiotic_doses_avoided','MISSING'))")
+  SAVINGS=$(echo "$IMPACT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('milk_yield_saved_usd','MISSING'))")
+  info "antibiotic_doses_avoided=$DOSES  milk_yield_saved_usd=$SAVINGS"
+else
+  fail "GET /api/impact returned $IMPACT_STATUS"
+fi
+
+# 8. /api/history returns 200 with predictions list
+HISTORY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/history")
+if [ "$HISTORY_STATUS" = "200" ]; then
+  TOTAL=$(curl -s "$BASE/api/history" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('total','MISSING'))")
+  pass "GET /api/history returns 200 (total=$TOTAL)"
+else
+  fail "GET /api/history returned $HISTORY_STATUS"
+fi
+
+# 9. /api/tier returns 200 with tier info
+TIER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/tier")
+if [ "$TIER_STATUS" = "200" ]; then
+  TIER=$(curl -s "$BASE/api/tier" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tier','MISSING'))")
+  pass "GET /api/tier returns 200 (tier=$TIER)"
+else
+  fail "GET /api/tier returned $TIER_STATUS"
+fi
+
+# 10. POST /api/ingest accepts a manual observation
+INGEST_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/api/ingest" \
+  -H "Content-Type: application/json" \
+  -d '{"cow_id":47,"yield_kg":20.5,"pen":"A1","health_event":"none","notes":"smoke test"}')
+if [ "$INGEST_STATUS" = "200" ]; then
+  pass "POST /api/ingest returns 200"
+else
+  fail "POST /api/ingest returned $INGEST_STATUS"
+fi
+
+# 11. /api/logs returns 200 (ingest log)
+LOGS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/logs")
+if [ "$LOGS_STATUS" = "200" ]; then
+  LOGCOUNT=$(curl -s "$BASE/api/logs" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('logs',[])))")
+  pass "GET /api/logs returns 200 (entries=$LOGCOUNT)"
+else
+  fail "GET /api/logs returned $LOGS_STATUS"
+fi
+
 echo ""
 if [ "$FAILED" -eq 0 ]; then
   echo -e "${GREEN}All smoke tests passed — demo ready.${NC}"

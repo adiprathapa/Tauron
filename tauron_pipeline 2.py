@@ -206,89 +206,6 @@ def make_labels(graph: Data,
     ], dim=1)
 
 
-# ── Symptom perturbation — makes sick cows look sick in features ───────────
-# Profiles define (feature_index, mean_shift_in_SDs) applied with noise.
-# Sources: Rutten et al. 2017 (SensOor), Stangaferro et al. 2016 (rumination),
-#          Van Hertem et al. 2013 (activity/lameness).
-# Feature order: activity(0), highly_active(1), rumination_min(2), feeding_min(3),
-#   ear_temp_c(4), milk_yield_kg(5), health_event(6), feeding_visits(7), days_in_milk(8)
-
-_SYMPTOM_PROFILES = {
-    "mastitis": [
-        (5, -1.2),   # milk_yield_kg drops sharply
-        (4,  0.8),   # ear_temp_c rises
-        (2, -0.6),   # rumination_min drops
-        (0, -0.4),   # activity drops mildly
-    ],
-    "brd": [
-        (0, -1.2),   # activity drops
-        (4,  1.0),   # ear_temp_c spikes
-        (3, -0.7),   # feeding_min drops
-        (2, -0.7),   # rumination_min drops
-    ],
-    "lameness": [
-        (0, -1.5),   # activity drops heavily
-        (1, -1.3),   # highly_active drops
-        (7, -0.8),   # feeding_visits drops
-        (3, -0.5),   # feeding_min drops
-    ],
-}
-
-# Prodromal severity ramp: last 3 days → [mild, moderate, acute]
-_DAY_SEVERITY = [0.3, 0.6, 1.0]
-
-
-def perturb_sick_features(x_seq: torch.Tensor, labels: torch.Tensor,
-                          rng: Optional[np.random.Generator] = None) -> torch.Tensor:
-    """
-    Modify x_seq in-place so sick cows exhibit realistic symptom signatures.
-
-    Each sick cow's features are shifted over the last 1–3 days of the 7-day
-    window with increasing severity (prodromal ramp). Noise is added per-cow
-    so the model can't just memorise a deterministic pattern.
-
-    Args:
-        x_seq:  [N, T=7, F=9] standardised feature tensor
-        labels: [N, 3] binary disease labels (mastitis, brd, lameness)
-        rng:    random generator for reproducibility
-
-    Returns:
-        Modified x_seq tensor (also modifies in place).
-    """
-    if rng is None:
-        rng = np.random.default_rng()
-
-    x = x_seq.clone()
-    N, T, F = x.shape
-
-    for d_idx, disease in enumerate(DISEASES):
-        sick_mask = labels[:, d_idx] > 0.5
-        sick_cows = sick_mask.nonzero(as_tuple=True)[0]
-
-        if len(sick_cows) == 0:
-            continue
-
-        profile = _SYMPTOM_PROFILES[disease]
-
-        for cow_idx in sick_cows:
-            # How many prodromal days (1–3), randomly varies per cow
-            n_days = int(rng.integers(1, len(_DAY_SEVERITY) + 1))
-            severities = _DAY_SEVERITY[-n_days:]
-
-            for day_offset, severity in enumerate(severities):
-                t = T - n_days + day_offset  # index into 7-day window
-                if t < 0 or t >= T:
-                    continue
-
-                for feat_idx, mean_shift in profile:
-                    # Add noise: ±30% of the mean shift
-                    noise = 1.0 + rng.uniform(-0.3, 0.3)
-                    shift = mean_shift * severity * noise
-                    x[cow_idx, t, feat_idx] += shift
-
-    return x
-
-
 def build_dataset(farm_df: pd.DataFrame, n_runs: int = 7,
                   window: int = WINDOW_DAYS) -> List[Data]:
     """
@@ -305,7 +222,6 @@ def build_dataset(farm_df: pd.DataFrame, n_runs: int = 7,
         for _ in range(n_runs):
             g   = base.clone()
             g.y = make_labels(g, rng)
-            g.x_seq = perturb_sick_features(g.x_seq, g.y, rng)
             dataset.append(g)
         if (i + 1) % 20 == 0:
             print(f"  {i + 1}/{len(dates)}")

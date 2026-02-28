@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 
 const App = () => {
-    const [currentTab, setCurrentTab] = useState('home');
+    const [currentTab, setCurrentTab] = useState('feed');
 
     const renderContent = () => {
         switch (currentTab) {
@@ -10,15 +10,9 @@ const App = () => {
             case 'map': return <HerdMap />;
             case 'log': return <DataEntryLog />;
             case 'impact': return <SustainabilityImpact />;
-            case 'about': return <TierAbout />;
             default: return <MorningAlertFeed />;
         }
     };
-
-    // Homepage renders full-width without the sidebar Layout
-    if (currentTab === 'home') {
-        return <Homepage onNavigate={setCurrentTab} />;
-    }
 
     return (
         <Layout currentTab={currentTab} onTabChange={setCurrentTab}>

@@ -35,9 +35,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from torch_geometric.data import Data
-
-from tauron_pipeline import TauronGNN
+from torch_geometric.nn import SAGEConv
 
 logger = logging.getLogger(__name__)
 
@@ -70,29 +71,54 @@ N_DAYS  = 90
 MODEL_PATH = Path("backend/models/tauron_model.pt")
 DEVICE     = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
+
 # ---------------------------------------------------------------------------
-# Demo staging — Cow #47 mastitis scenario
-#
-# The trained model has AUROC ~0.5 (labels were randomly injected, not correlated
-# with features by design). Model outputs collapse to near-zero for all cows.
-# To produce a working demo we:
-#   1. Inject realistic sensor perturbations for Cow #47 into _generate_farm()
-#      (matches Rutten et al. 2017 mastitis prodromal pattern)
-#   2. Override the risk scores in run_inference() and get_gnn_explainer_output()
-#      so the demo always fires regardless of weight quality.
-# The gradient XAI (feature_mask, feature_delta) still runs on real data.
+# Model definition — must match training architecture in tauron_ml.ipynb
 # ---------------------------------------------------------------------------
-_DEMO_SCENARIO = {
-    "cow_id":    47,
-    "dis_idx":   0,                      # mastitis = index 0 in DISEASES
-    "all_risks": {"mastitis": 0.85, "brd": 0.31, "lameness": 0.12},
-}
+
+class TauronGNN(nn.Module):
+    """
+    GraphSAGE + GRU model for multi-disease dairy cow risk prediction.
+
+    Forward pass:
+        1. GRU encodes each cow's 7-day feature window → node embedding [N, H]
+        2. Two SAGEConv layers aggregate 2-hop neighbourhood information
+        3. Linear decoder maps to 3 disease risk scores per cow
+
+    Output: sigmoid-activated [N, 3] tensor — values in [0, 1].
+    """
+
+    def __init__(
+        self,
+        n_features: int = N_FEATURES,
+        window: int = WINDOW_DAYS,
+        hidden: int = 128,
+        n_diseases: int = N_DISEASES,
+        dropout: float = 0.3,
+    ):
+        super().__init__()
+        self.gru     = nn.GRU(input_size=n_features, hidden_size=hidden,
+                              num_layers=1, batch_first=True)
+        self.sage1   = SAGEConv(hidden, hidden)
+        self.sage2   = SAGEConv(hidden, hidden)
+        self.norm1   = nn.LayerNorm(hidden)
+        self.norm2   = nn.LayerNorm(hidden)
+        self.drop    = nn.Dropout(dropout)
+        self.decoder = nn.Linear(hidden, n_diseases)
+
+    def forward(self, data: Data) -> torch.Tensor:
+        # 1. Temporal: GRU over 7-day window → last hidden state
+        _, h_n = self.gru(data.x_seq)            # h_n: [1, N, H]
+        h = h_n.squeeze(0)                        # [N, H]
+        # 2. Graph: 2-hop message passing
+        h = self.drop(F.relu(self.norm1(self.sage1(h, data.edge_index))))
+        h = self.drop(F.relu(self.norm2(self.sage2(h, data.edge_index))))
+        # 3. Decode → three risk scores per cow
+        return torch.sigmoid(self.decoder(h))     # [N, 3]
 
 
 # ---------------------------------------------------------------------------
 # Model loading — singleton, lazy-initialised
-# TauronGNN is imported from tauron_pipeline (single source of truth).
-# forward() returns raw logits [N, 3]; apply torch.sigmoid() at call sites.
 # ---------------------------------------------------------------------------
 
 _model = None
@@ -154,34 +180,7 @@ def _generate_farm(
                 feeding_visits=int(rng.integers(3, 10)),
                 days_in_milk=dim_base[cow] + day,
             ))
-    df = pd.DataFrame(rows)
-
-    # Inject mastitis prodromal signal for _DEMO_SCENARIO cow
-    # (activity drop → ear temp rise → yield fall, 3 days before event day)
-    demo_cow   = _DEMO_SCENARIO["cow_id"]
-    event_date = START + timedelta(days=n_days - 1)
-    prodromes  = [
-        (3, {"activity": 0.95, "rumination_min": 0.97, "ear_temp_c": ("add", 0.2)}),
-        (2, {"activity": 0.88, "rumination_min": 0.92, "ear_temp_c": ("add", 0.5), "milk_yield_kg": 0.94}),
-        (1, {"activity": 0.78, "rumination_min": 0.85, "ear_temp_c": ("add", 0.9), "milk_yield_kg": 0.88}),
-    ]
-    for delta, changes in prodromes:
-        mask = (df["cow_id"] == demo_cow) & (df["date"] == event_date - timedelta(days=delta))
-        for col, fn in changes.items():
-            if mask.any() and col in df.columns:
-                if isinstance(fn, tuple):   # ("add", value) → additive
-                    df.loc[mask, col] += fn[1]
-                else:                       # scalar → multiplicative
-                    df.loc[mask, col] *= fn
-    mask_ev = (df["cow_id"] == demo_cow) & (df["date"] == event_date)
-    if mask_ev.any():
-        df.loc[mask_ev, "milk_yield_kg"]  *= 0.78
-        df.loc[mask_ev, "ear_temp_c"]      = 39.8
-        df.loc[mask_ev, "activity"]       *= 0.65
-        df.loc[mask_ev, "rumination_min"] *= 0.70
-        df.loc[mask_ev, "health_event"]    = 1
-
-    return df
+    return pd.DataFrame(rows)
 
 
 # ---------------------------------------------------------------------------
@@ -300,44 +299,6 @@ def _dict_to_df(farm_data: dict) -> pd.DataFrame:
 # Public interface
 # ---------------------------------------------------------------------------
 
-# ── Demo staging ───────────────────────────────────────────────────────────
-def stage_demo(farm_df: pd.DataFrame, patient_zero: int = 47,
-               event_date: str = "2026-01-13") -> pd.DataFrame:
-    """
-    Inject a 3-day prodromal mastitis signal for Cow #patient_zero,
-    matching sensor patterns from Rutten et al. 2017:
-    activity drops → ear temp rises → milk yield falls sharply on event day.
-    """
-    df  = farm_df.copy()
-    evd = pd.Timestamp(event_date)
-
-    prodromes = [
-        (3, {"activity": 0.95, "rumination_min": 0.97,
-             "ear_temp_c": lambda x: x + 0.2}),
-        (2, {"activity": 0.88, "rumination_min": 0.92,
-             "ear_temp_c": lambda x: x + 0.5, "milk_yield_kg": 0.94}),
-        (1, {"activity": 0.78, "rumination_min": 0.85,
-             "ear_temp_c": lambda x: x + 0.9, "milk_yield_kg": 0.88}),
-    ]
-    for delta, changes in prodromes:
-        mask = (df["cow_id"] == patient_zero) & (df["date"] == evd - timedelta(days=delta))
-        for col, fn in changes.items():
-            if mask.any() and col in df.columns:
-                df.loc[mask, col] = df.loc[mask, col].apply(
-                    fn if callable(fn) else lambda x, f=fn: x * f
-                )
-
-    mask = (df["cow_id"] == patient_zero) & (df["date"] == evd)
-    if mask.any():
-        df.loc[mask, "milk_yield_kg"]   *= 0.78
-        df.loc[mask, "ear_temp_c"]       = 39.8
-        df.loc[mask, "activity"]        *= 0.65
-        df.loc[mask, "rumination_min"]  *= 0.70
-        df.loc[mask, "health_event"]     = 1
-
-    return df
-
-
 def build_graph(farm_data=None) -> Data:
     """
     Construct a PyTorch Geometric Data object from farm records.
@@ -357,29 +318,13 @@ def build_graph(farm_data=None) -> Data:
             num_nodes  int
             date       str             snapshot date (YYYY-MM-DD)
     """
-    snapshot_date = None
     if farm_data is None:
         farm_df = _generate_farm()
-        # Append extra days and stage Cow 47 mastitis just like api.py
-        rng     = np.random.default_rng(99)
-        extra   = pd.date_range("2025-12-30", "2026-01-15")
-        rows    = []
-        for d in extra:
-            for cow in range(N_COWS):
-                r = farm_df[farm_df["cow_id"] == cow].iloc[-1].copy()
-                r["date"]          = d
-                r["milk_yield_kg"] = float(r["milk_yield_kg"]) + rng.normal(0, 0.4)
-                rows.append(r)
-        
-        farm_df = pd.concat([farm_df, pd.DataFrame(rows)], ignore_index=True)
-        farm_df = stage_demo(farm_df)
-        snapshot_date = "2026-01-13"  # freeze at the height of the outbreak
     elif isinstance(farm_data, pd.DataFrame):
         farm_df = farm_data
     else:
         farm_df = _dict_to_df(farm_data)
-    
-    return _build_graph_from_df(farm_df, snapshot_date=snapshot_date)
+    return _build_graph_from_df(farm_df)
 
 
 def run_inference(graph_data: Data) -> dict:
@@ -408,7 +353,7 @@ def run_inference(graph_data: Data) -> dict:
     model = _load_model()
 
     with torch.no_grad():
-        risk = torch.sigmoid(model(graph_data.to(DEVICE))).cpu()   # [N, 3]
+        risk = model(graph_data.to(DEVICE)).cpu()   # [N, 3]
 
     cows = []
     for i, cow_id in enumerate(graph_data.cow_ids):
@@ -436,18 +381,6 @@ def run_inference(graph_data: Data) -> dict:
             "dominant_disease": dominant_disease,
             "all_risks":        all_risks if status != "ok" else None,
         })
-
-    # Demo staging overlay: force risk scores for the demo cow
-    for cow in cows:
-        if cow["id"] == _DEMO_SCENARIO["cow_id"]:
-            cow.update({
-                "risk_score":       0.85,
-                "status":           "alert",
-                "top_feature":      "milk_yield_kg",
-                "dominant_disease": DISEASES[_DEMO_SCENARIO["dis_idx"]],
-                "all_risks":        _DEMO_SCENARIO["all_risks"],
-            })
-            break
 
     # N×N adjacency matrix, row/col order = cows list order
     N         = graph_data.num_nodes
@@ -501,11 +434,8 @@ def get_gnn_explainer_output(cow_id: int, graph_data: Data) -> dict:
     g       = graph_data.clone().to(DEVICE)
     g.x_seq = g.x_seq.detach().clone().requires_grad_(True)
 
-    risk    = torch.sigmoid(model(g))               # [N, 3]
+    risk    = model(g)                              # [N, 3]
     dom_idx = int(risk[cow_idx].argmax().item())
-    # Demo staging: force mastitis attribution for the demo cow
-    if cow_id == _DEMO_SCENARIO["cow_id"]:
-        dom_idx = _DEMO_SCENARIO["dis_idx"]
     risk[cow_idx, dom_idx].backward()
 
     # Feature importance: mean |gradient| over time window → normalised [0, 1]
@@ -531,25 +461,15 @@ def get_gnn_explainer_output(cow_id: int, graph_data: Data) -> dict:
     ]
 
     with torch.no_grad():
-        all_scores = torch.sigmoid(model(graph_data.to(DEVICE)))[cow_idx].cpu()
-
-    # Demo staging: override disease scores for the demo cow
-    if cow_id == _DEMO_SCENARIO["cow_id"]:
-        all_risks_out = _DEMO_SCENARIO["all_risks"]
-    else:
-        all_risks_out = {d: round(float(all_scores[j]), 4) for j, d in enumerate(DISEASES)}
+        all_scores = model(graph_data.to(DEVICE))[cow_idx].cpu()
 
     return {
         "cow_id":           cow_id,
         "dominant_disease": DISEASES[dom_idx],
-        "all_risks":        all_risks_out,
+        "all_risks":        {d: round(float(all_scores[j]), 4) for j, d in enumerate(DISEASES)},
         "edge_mask":        edge_mask,
         "edge_index":       ei,
         "feature_mask":     feature_mask,
         "feature_names":    SENSOR_FEATURES,
         "feature_delta":    feature_delta,
     }
-
-
-# Public alias so main.py can seed its farm state without importing a private symbol.
-generate_farm_df = _generate_farm

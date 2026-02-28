@@ -1,9 +1,32 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 const Layout = ({ currentTab, onTabChange, children }) => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [farmInfo, setFarmInfo] = useState({ name: 'GLENWOOD DAIRY', location: '840 HEAD' });
+    const [isEditingFarm, setIsEditingFarm] = useState(false);
+    const nameRef = useRef(null);
+    const locRef = useRef(null);
+
+    // TTL constant: 10 hours in milliseconds
+    const TTL_MS = 36000 * 1000;
 
     useEffect(() => {
+        // Load farm config from LocalStorage if valid
+        try {
+            const storedConfig = localStorage.getItem('tauron_farm_config');
+            if (storedConfig) {
+                const parsed = JSON.parse(storedConfig);
+                const now = new Date().getTime();
+                if (parsed.timestamp && now - parsed.timestamp < TTL_MS) {
+                    setFarmInfo({ name: parsed.name, location: parsed.location });
+                } else {
+                    localStorage.removeItem('tauron_farm_config'); // Expired
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse LocalStorage farm config", e);
+        }
+
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -17,11 +40,30 @@ const Layout = ({ currentTab, onTabChange, children }) => {
     });
 
     const tabs = [
+        { id: 'home', icon: 'home', label: 'Home' },
         { id: 'feed', icon: 'bell', label: 'Alerts' },
         { id: 'map', icon: 'map', label: 'Herd Map' },
         { id: 'log', icon: 'clipboard-list', label: 'Data Log' },
         { id: 'impact', icon: 'leaf', label: 'Impact' },
+        { id: 'about', icon: 'info', label: 'About' },
     ];
+
+    const saveFarmInfo = () => {
+        const newInfo = {
+            name: nameRef.current?.value || farmInfo.name,
+            location: locRef.current?.value || farmInfo.location
+        };
+        setFarmInfo(newInfo);
+        setIsEditingFarm(false);
+        try {
+            localStorage.setItem('tauron_farm_config', JSON.stringify({
+                ...newInfo,
+                timestamp: new Date().getTime()
+            }));
+        } catch (e) {
+            console.error("Failed to save LocalStorage farm config", e);
+        }
+    };
 
     return (
         <div style={{
@@ -47,14 +89,36 @@ const Layout = ({ currentTab, onTabChange, children }) => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                             <div className="logo">Tau<span className="accent">ron.</span></div>
-                            <div style={{
-                                fontSize: '10px',
-                                color: 'rgba(242,237,228,0.35)',
-                                fontFamily: 'Cormorant Garamond, serif',
-                                marginTop: '2px'
-                            }}>
-                                GLENWOOD DAIRY — 840 HEAD
-                            </div>
+                            {isEditingFarm ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                                    <input
+                                        ref={nameRef}
+                                        defaultValue={farmInfo.name}
+                                        style={{ background: 'transparent', border: '1px solid var(--line)', color: '#fff', fontSize: '10px', padding: '2px 4px', fontFamily: 'Cormorant Garamond, serif' }}
+                                    />
+                                    <input
+                                        ref={locRef}
+                                        defaultValue={farmInfo.location}
+                                        style={{ background: 'transparent', border: '1px solid var(--line)', color: '#fff', fontSize: '10px', padding: '2px 4px', fontFamily: 'Cormorant Garamond, serif' }}
+                                    />
+                                    <button onClick={saveFarmInfo} style={{ background: 'var(--sage)', color: 'var(--bg)', border: 'none', padding: '2px 8px', fontSize: '10px', marginTop: '4px', cursor: 'pointer' }}>SAVE</button>
+                                </div>
+                            ) : (
+                                <div
+                                    onClick={() => setIsEditingFarm(true)}
+                                    title="Click to edit farm details"
+                                    style={{
+                                        fontSize: '10px',
+                                        color: 'rgba(242,237,228,0.35)',
+                                        fontFamily: 'Cormorant Garamond, serif',
+                                        marginTop: '2px',
+                                        cursor: 'pointer',
+                                        borderBottom: '1px dotted rgba(255,255,255,0.2)',
+                                        display: 'inline-block'
+                                    }}>
+                                    {farmInfo.name} — {farmInfo.location}
+                                </div>
+                            )}
                         </div>
                         <div style={{ color: 'var(--sage)' }}>
                             <i data-lucide="wifi"></i>
@@ -73,14 +137,36 @@ const Layout = ({ currentTab, onTabChange, children }) => {
                 }}>
                     <div style={{ padding: '32px 24px' }}>
                         <div className="logo" style={{ fontSize: '36px' }}>Tauron<span className="accent">.</span></div>
-                        <div style={{
-                            fontSize: '11px',
-                            color: 'rgba(242,237,228,0.35)',
-                            fontFamily: 'JetBrains Mono, monospace',
-                            marginTop: '8px'
-                        }}>
-                            GLENWOOD DAIRY<br />840 HEAD
-                        </div>
+                        {isEditingFarm ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                                <input
+                                    ref={nameRef}
+                                    defaultValue={farmInfo.name}
+                                    style={{ background: 'transparent', border: '1px solid var(--line)', color: '#fff', fontSize: '11px', padding: '4px 6px', fontFamily: 'JetBrains Mono, monospace' }}
+                                />
+                                <input
+                                    ref={locRef}
+                                    defaultValue={farmInfo.location}
+                                    style={{ background: 'transparent', border: '1px solid var(--line)', color: '#fff', fontSize: '11px', padding: '4px 6px', fontFamily: 'JetBrains Mono, monospace' }}
+                                />
+                                <button onClick={saveFarmInfo} style={{ background: 'var(--sage)', color: 'var(--bg)', border: 'none', padding: '4px 12px', fontSize: '11px', fontWeight: 'bold', marginTop: '4px', cursor: 'pointer', fontFamily: 'JetBrains Mono, monospace' }}>SAVE</button>
+                            </div>
+                        ) : (
+                            <div
+                                onClick={() => setIsEditingFarm(true)}
+                                title="Click to edit farm details"
+                                style={{
+                                    fontSize: '11px',
+                                    color: 'rgba(242,237,228,0.35)',
+                                    fontFamily: 'JetBrains Mono, monospace',
+                                    marginTop: '8px',
+                                    cursor: 'pointer',
+                                    borderBottom: '1px dotted rgba(255,255,255,0.2)',
+                                    display: 'inline-block'
+                                }}>
+                                {farmInfo.name}<br />{farmInfo.location}
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', padding: '0 12px', flex: 1, marginTop: '24px' }}>

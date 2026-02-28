@@ -3,9 +3,9 @@ const { useState, useEffect } = React;
 const API = 'http://localhost:8000';
 const PEN_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-const derivePen  = (id) => PEN_LABELS[Math.min(Math.floor(id / 10), PEN_LABELS.length - 1)] || 'X';
+const derivePen = (id) => PEN_LABELS[Math.min(Math.floor(id / 10), PEN_LABELS.length - 1)] || 'X';
 const statusToLevel = (s) => s === 'alert' ? 'high' : (s === 'watch' ? 'warn' : 'ok');
-const fmtTime    = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const fmtTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const fmtFeature = (f) => f ? f.replace(/_/g, ' ') : '—';
 
 const AlertCard = ({ alert }) => {
@@ -34,7 +34,7 @@ const AlertCard = ({ alert }) => {
         switch (level) {
             case 'high': return { bg: 'var(--danger-bg)', border: 'rgba(224, 112, 80, 0.3)', dot: 'var(--danger)' };
             case 'warn': return { bg: 'var(--warning-bg)', border: 'rgba(201, 152, 58, 0.3)', dot: 'var(--straw)' };
-            default:     return { bg: 'var(--success-bg)', border: 'rgba(106, 158, 72, 0.3)', dot: 'var(--sage)' };
+            default: return { bg: 'var(--success-bg)', border: 'rgba(106, 158, 72, 0.3)', dot: 'var(--sage)' };
         }
     };
 
@@ -83,7 +83,7 @@ const AlertCard = ({ alert }) => {
                 display: expanded ? 'block' : 'none',
                 animation: expanded ? 'fadeIn 0.3s ease' : 'none'
             }}>
-                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--mist)', letterSpacing: '0.1em', marginBottom: '6px' }}>
+                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--mist)', letterSpacing: '0.1em', marginBottom: '10px' }}>
                     XAI Trace
                 </div>
 
@@ -91,16 +91,71 @@ const AlertCard = ({ alert }) => {
                     <div style={{ fontSize: '14px', color: 'var(--mist)' }}>Loading explanation…</div>
                 ) : explain ? (
                     <>
-                        <div style={{ fontSize: '16px', color: '#444', lineHeight: '1.4', marginBottom: '8px' }}>
-                            {explain.alert_text}
+                        {/* ── Label / Value grid ── */}
+                        <div className="xai-grid">
+                            <span className="xai-label">Top Feature</span>
+                            <span className="xai-value">{fmtFeature(explain.top_feature || explain.xai?.top_feature)}</span>
+
+                            <span className="xai-label">Feature Δ</span>
+                            <span className={`xai-value ${(explain.feature_delta ?? explain.xai?.feature_delta ?? 0) < 0 ? 'xai-delta-neg' : 'xai-delta-pos'}`}>
+                                {((explain.feature_delta ?? explain.xai?.feature_delta) != null)
+                                    ? (() => { const d = explain.feature_delta ?? explain.xai?.feature_delta; return `${d > 0 ? '+' : '~−'}${Math.min(Math.round(Math.abs(d) * 15), 50)}%`; })()
+                                    : '—'}
+                            </span>
+
+                            {explain.top_edge && (explain.top_edge.from != null || explain.top_edge.to != null || explain.top_edge.neighbour_cow != null) && (
+                                <>
+                                    <span className="xai-label">Top Edge</span>
+                                    <span className="xai-value">
+                                        {explain.top_edge.from != null ? `#${explain.top_edge.from}` : `#${alert.cowId}`}
+                                        {' → '}
+                                        #{explain.top_edge.to ?? explain.top_edge.neighbour_cow}
+                                        <span style={{ color: 'var(--mist)', marginLeft: '6px', fontSize: '13px' }}>
+                                            wt {(explain.top_edge.weight ?? explain.top_edge.edge_weight ?? 0).toFixed(2)}
+                                        </span>
+                                    </span>
+                                </>
+                            )}
                         </div>
-                        {explain.top_edge && (explain.top_edge.to != null || explain.top_edge.neighbour_cow != null) && (
-                            <div style={{ fontSize: '14px', color: 'var(--mist)', marginBottom: '6px' }}>
-                                Contact: Cow #{explain.top_edge.to ?? explain.top_edge.neighbour_cow}
-                                {' '}· weight {(explain.top_edge.weight ?? 0).toFixed(2)}
+
+                        {/* ── Disease Breakdown ── */}
+                        {(explain.all_risks || explain.xai?.all_risks) && (
+                            <div style={{ marginTop: '12px' }}>
+                                <div className="xai-label" style={{ marginBottom: '6px' }}>Disease Breakdown</div>
+                                {Object.entries(explain.all_risks || explain.xai?.all_risks).map(([disease, score]) => {
+                                    const pct = Math.round(score * 100);
+                                    const dominant = disease === (explain.dominant_disease || explain.xai?.dominant_disease);
+                                    return (
+                                        <div key={disease} style={{ marginBottom: '5px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '2px' }}>
+                                                <span style={{ color: dominant ? 'var(--ink)' : 'var(--mist)', fontWeight: dominant ? '700' : '400', textTransform: 'capitalize' }}>
+                                                    {disease === 'brd' ? 'BRD' : disease}
+                                                </span>
+                                                <span style={{ color: dominant ? 'var(--ink)' : 'var(--mist)', fontWeight: dominant ? '700' : '400' }}>
+                                                    {pct}%
+                                                </span>
+                                            </div>
+                                            <div className="xai-bar">
+                                                <div className="xai-bar-fill" style={{
+                                                    width: `${pct}%`,
+                                                    background: dominant ? colors.dot : 'var(--line)',
+                                                    opacity: dominant ? 1 : 0.6
+                                                }}></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
-                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px', color: 'var(--sage)', fontWeight: '600' }}>
+
+                        {/* ── Alert Text ── */}
+                        <div style={{ fontSize: '15px', color: '#444', lineHeight: '1.5', marginTop: '12px', borderTop: `1px dashed ${colors.border}`, paddingTop: '10px' }}>
+                            <i data-lucide="message-circle" style={{ width: '13px', height: '13px', verticalAlign: '-2px', marginRight: '4px' }}></i>
+                            {explain.alert_text || explain.alert || explain.xai?.alert_text || 'No alert text available.'}
+                        </div>
+
+                        {/* ── Confidence ── */}
+                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: 'var(--sage)', fontWeight: '600' }}>
                             <i data-lucide="check-circle" style={{ width: '12px', height: '12px' }}></i>
                             Model Confidence: {alert.confidence}%
                         </div>
@@ -127,9 +182,9 @@ const AlertCard = ({ alert }) => {
 };
 
 const MorningAlertFeed = () => {
-    const [herd, setHerd]       = useState(null);
+    const [herd, setHerd] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError]     = useState(null);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
@@ -153,7 +208,7 @@ const MorningAlertFeed = () => {
         <div style={{ padding: '24px 20px' }}>
             <div className="kicker" style={{ marginBottom: '16px', fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontWeight: '700' }}>Morning Alert Feed</div>
             <div style={{ background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: '8px', padding: '16px', color: 'var(--danger)', fontFamily: 'Cormorant Garamond, serif', fontSize: '15px', lineHeight: '1.5' }}>
-                <strong>Backend unavailable.</strong> Start the server:<br/>
+                <strong>Backend unavailable.</strong> Start the server:<br />
                 <code style={{ fontSize: '13px' }}>uvicorn backend.main:app --reload</code>
                 <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.6 }}>{error}</div>
             </div>
@@ -163,7 +218,7 @@ const MorningAlertFeed = () => {
     const cows = herd.cows || [];
     const alertCount = cows.filter(c => c.status === 'alert').length;
     const watchCount = cows.filter(c => c.status === 'watch').length;
-    const okCount    = cows.filter(c => c.status === 'ok').length;
+    const okCount = cows.filter(c => c.status === 'ok').length;
 
     const nonOkCows = cows
         .filter(c => c.status !== 'ok')
@@ -171,15 +226,15 @@ const MorningAlertFeed = () => {
 
     const now = fmtTime();
     const alerts = nonOkCows.map(c => ({
-        cowId:       c.id,
-        pen:         derivePen(c.id),
-        level:       statusToLevel(c.status),
-        time:        now,
-        message:     `${c.dominant_disease ? c.dominant_disease.charAt(0).toUpperCase() + c.dominant_disease.slice(1) : 'Risk'} — ${Math.round(c.risk_score * 100)}% within 48h`,
+        cowId: c.id,
+        pen: derivePen(c.id),
+        level: statusToLevel(c.status),
+        time: now,
+        message: `${c.dominant_disease ? c.dominant_disease.charAt(0).toUpperCase() + c.dominant_disease.slice(1) : 'Risk'} — ${Math.round(c.risk_score * 100)}% within 48h`,
         top_feature: c.top_feature,
-        confidence:  c.all_risks && c.dominant_disease
-                       ? Math.round(c.all_risks[c.dominant_disease] * 100)
-                       : Math.round(c.risk_score * 100),
+        confidence: c.all_risks && c.dominant_disease
+            ? Math.round(c.all_risks[c.dominant_disease] * 100)
+            : Math.round(c.risk_score * 100),
     }));
 
     return (
