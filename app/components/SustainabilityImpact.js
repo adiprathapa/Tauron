@@ -19,17 +19,27 @@ const SustainabilityImpact = () => {
         fetch(`${API}/herd`)
             .then(r => r.ok ? r.json() : Promise.reject(r.status))
             .then(data => {
-                const alertCount = data.cows.filter(c => c.status === 'alert').length;
-                const watchCount = data.cows.filter(c => c.status === 'watch').length;
+                const alertCows  = data.cows.filter(c => c.status === 'alert');
+                const watchCows  = data.cows.filter(c => c.status === 'watch');
+                const alertCount = alertCows.length;
+                const watchCount = watchCows.length;
+
                 // Industry estimate: early detection saves ~2 antibiotic courses per alert cow,
                 // ~1 per watch cow; milk savings ~$280/alert cow, $85/watch cow (7-day projection)
-                const doses  = alertCount * 2 + watchCount * 1;
+                const doses  = alertCount * 2 + watchCount;
                 const saving = alertCount * 280 + watchCount * 85;
+
+                // Lead time: risk score above threshold (0.70) mapped to 0–48h detection window
+                // score=1.0 → 48h early; score=0.70 → 0h (just triggered)
+                const avgLeadTime = alertCount > 0
+                    ? Math.round(alertCows.reduce((sum, c) => sum + (c.risk_score - 0.70) / 0.30 * 48, 0) / alertCount)
+                    : null;
+
                 setMetrics([
-                    { title: 'Antibiotics Avoided', value: `${doses} Doses`,          icon: 'shield-plus',    color: 'var(--sage)' },
-                    { title: 'Milk Yield Saved',    value: `$${saving.toLocaleString()}`, icon: 'trending-up', color: 'var(--straw)' },
-                    { title: 'Avg Lead Time',       value: '41 Hours',                icon: 'clock',          color: 'var(--ink)' },
-                    { title: 'Accuracy Confirm',    value: '94.2%',                   icon: 'check-circle-2', color: 'var(--sage)' },
+                    { title: 'Antibiotics Avoided', value: doses > 0 ? `${doses} Doses` : '—',              icon: 'shield-plus',    color: 'var(--sage)' },
+                    { title: 'Milk Yield Saved',    value: saving > 0 ? `$${saving.toLocaleString()}` : '—', icon: 'trending-up',    color: 'var(--straw)' },
+                    { title: 'Avg Lead Time',       value: avgLeadTime != null ? `${avgLeadTime}h` : '—',    icon: 'clock',          color: 'var(--ink)' },
+                    { title: 'Cows Monitored',      value: String(data.cows.length),                         icon: 'check-circle-2', color: 'var(--sage)' },
                 ]);
             })
             .catch(() => {}); // silent — keep placeholder values on failure
