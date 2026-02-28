@@ -15,13 +15,10 @@ Mock mode:
 CORS: allow_origins=["*"] is intentional for localhost dev — lock down if deployed.
 """
 
-import io
-from datetime import date, datetime
-from typing import Any, List
-
-import pandas as pd
-from fastapi import FastAPI, HTTPException, Request
+from typing import Optional
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.mock_data import MOCK_HERD, MOCK_EXPLAIN, USE_MOCK
@@ -58,21 +55,24 @@ class ExplainResponse(BaseModel):
     alert_text: str                  # plain-English farmer alert
 
 
-class IngestRecord(BaseModel):
+class IngestPayload(BaseModel):
     cow_id: int
-    date: str
-    metric: str
-    value: Any                       # float for numeric sensors, str for pen_id
+    yield_kg: Optional[float] = None
+    pen: Optional[str] = None
+    health_event: Optional[str] = "none"
+    notes: Optional[str] = ""
 
 
-class IngestResponse(BaseModel):
-    status: str
-    rows_ingested: int
-    records: List[IngestRecord]
+# In-memory log — resets on server restart (fine for hackathon demo)
+_ingest_log: list[dict] = []
 
 
 # ---------------------------------------------------------------------------
-# In-memory record store — per-process, resets on restart
+# App
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# In-memory record store — per-process, reset on restart (upgrade to DB later)
 # ---------------------------------------------------------------------------
 
 _records: List[dict] = []
@@ -83,6 +83,7 @@ _records: List[dict] = []
 # ---------------------------------------------------------------------------
 
 def _normalize_manual(body: dict) -> List[dict]:
+    """Single manual-entry JSON: {cow_id, date?, milk_yield_kg?, pen_id?, health_event?}"""
     cow_id = int(body["cow_id"])
     dt = str(body.get("date") or date.today().isoformat())
     out = []
@@ -101,6 +102,7 @@ def _normalize_manual(body: dict) -> List[dict]:
 
 
 def _normalize_webhook(body: dict) -> List[dict]:
+    """Single webhook record: {cow_id, metric, value, timestamp?}"""
     ts = body.get("timestamp") or date.today().isoformat()
     try:
         dt = str(datetime.fromisoformat(str(ts).replace("Z", "+00:00")).date())
@@ -111,6 +113,7 @@ def _normalize_webhook(body: dict) -> List[dict]:
 
 
 def _normalize_batch(records: list) -> List[dict]:
+    """Batch mode: {records: [{cow_id, date?, ...}, ...]}"""
     out = []
     for r in records:
         out.extend(_normalize_manual(r))
@@ -118,6 +121,7 @@ def _normalize_batch(records: list) -> List[dict]:
 
 
 def _normalize_csv(df: pd.DataFrame) -> List[dict]:
+    """Wide-format CSV: columns = [cow_id, date?, metric1, metric2, ...]"""
     if "date" not in df.columns:
         df = df.copy()
         df["date"] = date.today().isoformat()
@@ -133,10 +137,6 @@ def _normalize_csv(df: pd.DataFrame) -> List[dict]:
                 out.append({"cow_id": cow_id, "date": dt, "metric": col, "value": val})
     return out
 
-
-# ---------------------------------------------------------------------------
-# App
-# ---------------------------------------------------------------------------
 
 app = FastAPI(
     title="Tauron API",
@@ -214,54 +214,15 @@ async def get_explain(cow_id: int):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@app.get("/api/ingest")
-async def get_ingest():
-    """Return all ingested records (in-memory store, resets on restart)."""
-    return {"status": "ok", "rows_ingested": len(_records), "records": _records}
-
-
-@app.post("/api/ingest", response_model=IngestResponse)
-async def post_ingest(request: Request):
+@app.post("/api/ingest")
+async def ingest(payload: IngestPayload):
     """
-    Ingest farm sensor data. Three accepted formats:
-
-    1. CSV upload (multipart/form-data, field name `file`)
-    2. Batch JSON: {"records": [{cow_id, date?, milk_yield_kg?, pen_id?, health_event?}]}
-    3. Webhook:   {"cow_id": 47, "metric": "milk_yield_kg", "value": 24.5, "timestamp": "..."}
-
-    All normalize to: [{cow_id, date, metric, value}]
+    Accept a single manual farm observation.
+    Stores in-memory for the session (resets on restart).
+    Returns: {status, rows}
     """
-    ct = request.headers.get("content-type", "")
-
-    if "multipart/form-data" in ct:
-        form = await request.form()
-        file = form.get("file")
-        if file is None or not hasattr(file, "read"):
-            raise HTTPException(400, "multipart request must include a `file` field")
-        content = await file.read()
-        try:
-            df = pd.read_csv(io.StringIO(content.decode()))
-        except Exception as exc:
-            raise HTTPException(422, f"CSV parse error: {exc}")
-        if "cow_id" not in df.columns:
-            raise HTTPException(422, "CSV must have a `cow_id` column")
-        records = _normalize_csv(df)
-    else:
-        try:
-            body = await request.json()
-        except Exception:
-            raise HTTPException(400, "body must be valid JSON or multipart/form-data")
-        if not isinstance(body, dict) or "cow_id" not in body:
-            raise HTTPException(422, "JSON body must contain `cow_id`")
-        if "records" in body:
-            records = _normalize_batch(body["records"])
-        elif "metric" in body:
-            records = _normalize_webhook(body)
-        else:
-            records = _normalize_manual(body)
-
-    if not records:
-        raise HTTPException(422, "no records could be parsed from the provided data")
-
-    _records.extend(records)
-    return {"status": "ok", "rows_ingested": len(records), "records": records}
+    from datetime import datetime
+    record = payload.model_dump()
+    record["timestamp"] = datetime.utcnow().isoformat()
+    _ingest_log.append(record)
+    return {"status": "ok", "rows": 1, "total": len(_ingest_log)}

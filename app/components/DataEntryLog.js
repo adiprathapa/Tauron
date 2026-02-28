@@ -1,11 +1,13 @@
 const { useState, useEffect } = React;
 
+const API = 'http://localhost:8000'; // From main
+
 const DataEntryLog = () => {
-    const [view, setView] = useState('entry');
+    const [view, setView]           = useState('entry');
     const [submitted, setSubmitted] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [logs, setLogs] = useState([
+    const [loading, setLoading]     = useState(false);
+    const [error, setError]         = useState(null);
+    const [logs, setLogs]           = useState([
         { date: 'Today, 06:12 AM', cow: '8492', yield: '31L', event: 'Mastitis suspected', user: 'Farm Hand JS' },
         { date: 'Yesterday, 17:45 PM', cow: '9104', yield: '40L', event: 'None', user: 'Automated Parlor' },
         { date: 'Yesterday, 05:30 AM', cow: '6021', yield: '44L', event: 'Lame off right hind', user: 'Farm Hand JS' },
@@ -14,40 +16,42 @@ const DataEntryLog = () => {
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
-    });
+    }, [view, submitted]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
-        const els = e.target.elements;
+        const fd = new FormData(e.target);
         const payload = {
-            cow_id: parseInt(els.cowId.value, 10),
-            date: new Date().toISOString().split('T')[0],
-            milk_yield_kg: els.yieldL.value ? parseFloat(els.yieldL.value) : null,
-            pen_id: els.penId.value,
-            health_event: els.healthEvent.value,
-            notes: els.notes.value,
+            cow_id:       Number(fd.get('cow_id')),
+            yield_kg:     fd.get('yield_kg') ? Number(fd.get('yield_kg')) : null,
+            pen:          fd.get('pen'),
+            health_event: fd.get('health_event'),
+            notes:        fd.get('notes') || '',
         };
 
         try {
-            const res = await fetch('/api/ingest', {
+            const res = await fetch(`${API}/api/ingest`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({ detail: res.statusText }));
-                throw new Error(err.detail || res.statusText);
+                const errData = await res.json().catch(() => ({ detail: res.statusText }));
+                throw new Error(errData.detail || `Error ${res.status}`);
             }
 
-            const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            // Update local log UI immediately
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            
             setLogs(prev => [{
                 date: `Today, ${timeStr}`,
                 cow: String(payload.cow_id),
-                yield: payload.milk_yield_kg != null ? `${payload.milk_yield_kg}L` : '—',
+                yield: payload.yield_kg != null ? `${payload.yield_kg}L` : '—',
                 event: payload.health_event === 'none' ? 'None' : payload.health_event,
                 user: 'Manual Entry',
             }, ...prev]);
@@ -72,8 +76,7 @@ const DataEntryLog = () => {
         fontSize: '18px',
         color: 'var(--ink)',
         marginBottom: '16px',
-        outline: 'none',
-        transition: 'border-color 0.2s'
+        outline: 'none'
     };
 
     const labelStyle = {
@@ -93,119 +96,58 @@ const DataEntryLog = () => {
                 <div className="kicker" style={{ margin: 0, fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontWeight: '700' }}>Data & Records</div>
 
                 <div style={{ display: 'flex', background: 'var(--card)', borderRadius: '6px', border: '1px solid var(--line)', overflow: 'hidden' }}>
-                    <button
-                        onClick={() => setView('entry')}
-                        style={{
-                            padding: '6px 12px',
-                            background: view === 'entry' ? 'var(--dark-bg)' : 'transparent',
-                            color: view === 'entry' ? 'var(--bg)' : 'var(--mist)',
-                            border: 'none',
-                            fontFamily: 'Cormorant Garamond, serif',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            transition: 'all 0.2s'
-                        }}
-                    >Entry</button>
-                    <button
-                        onClick={() => setView('log')}
-                        style={{
-                            padding: '6px 12px',
-                            background: view === 'log' ? 'var(--dark-bg)' : 'transparent',
-                            color: view === 'log' ? 'var(--bg)' : 'var(--mist)',
-                            border: 'none',
-                            fontFamily: 'Cormorant Garamond, serif',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            transition: 'all 0.2s'
-                        }}
-                    >Log</button>
+                    <button onClick={() => setView('entry')} style={{ padding: '6px 12px', background: view === 'entry' ? 'var(--dark-bg)' : 'transparent', color: view === 'entry' ? 'var(--bg)' : 'var(--mist)', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 'bold' }}>Entry</button>
+                    <button onClick={() => setView('log')} style={{ padding: '6px 12px', background: view === 'log' ? 'var(--dark-bg)' : 'transparent', color: view === 'log' ? 'var(--bg)' : 'var(--mist)', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 'bold' }}>Log</button>
                 </div>
             </div>
 
             {view === 'entry' ? (
                 <div className="card" style={{ padding: '24px' }}>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--barn)', marginBottom: '8px' }}>Manual Entry</h3>
-                    <p style={{ color: '#444', fontSize: '16px', marginBottom: '24px', lineHeight: '1.5' }}>
-                        Designed to take under 2 minutes. Tauron uses this to learn individual baselines.
-                    </p>
-
+                    <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', color: 'var(--barn)', marginBottom: '8px' }}>Manual Entry</h3>
+                    
                     {submitted ? (
-                        <div style={{ background: 'var(--success-bg)', border: '1px solid rgba(106, 158, 72, 0.3)', padding: '24px', borderRadius: '8px', textAlign: 'center', animation: 'fadeIn 0.3s' }}>
-                            <i data-lucide="check-circle" style={{ width: '32px', height: '32px', color: 'var(--sage)', marginBottom: '12px' }}></i>
-                            <h4 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '20px', fontWeight: 'bold', color: 'var(--sage)', marginBottom: '4px' }}>Record Saved</h4>
-                            <p style={{ fontSize: '16px', color: 'var(--sage)' }}>Model baseline updated successfully.</p>
+                        <div style={{ background: 'var(--success-bg)', padding: '24px', borderRadius: '8px', textAlign: 'center' }}>
+                            <i data-lucide="check-circle" style={{ color: 'var(--sage)', marginBottom: '12px' }}></i>
+                            <h4 style={{ color: 'var(--sage)' }}>Record Saved</h4>
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} style={{ animation: 'fadeIn 0.3s' }}>
+                        <form onSubmit={handleSubmit}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label style={labelStyle}>Cow ID</label>
-                                    <input name="cowId" type="number" placeholder="e.g. 8492" required style={inputStyle} />
+                                    <input name="cow_id" type="number" placeholder="8492" required style={inputStyle} />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Yield (Liters)</label>
-                                    <input name="yieldL" type="number" step="0.1" placeholder="0.0" style={inputStyle} />
+                                    <input name="yield_kg" type="number" step="0.1" placeholder="0.0" style={inputStyle} />
                                 </div>
                             </div>
 
                             <div>
                                 <label style={labelStyle}>Pen / Location</label>
-                                <select name="penId" style={{ ...inputStyle, background: 'var(--card)' }}>
+                                <select name="pen" style={{ ...inputStyle, background: 'var(--card)' }}>
                                     <option value="A1">Pen A1</option>
-                                    <option value="A2">Pen A2</option>
-                                    <option value="B1">Pen B1</option>
                                     <option value="Hospital">Hospital Pen</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label style={labelStyle}>Health Event (If Any)</label>
-                                <select name="healthEvent" style={{ ...inputStyle, background: 'var(--card)' }}>
+                                <label style={labelStyle}>Health Event</label>
+                                <select name="health_event" style={{ ...inputStyle, background: 'var(--card)' }}>
                                     <option value="none">None - Healthy</option>
-                                    <option value="lame">Lameness observed</option>
-                                    <option value="mastitis">Mastitis symptoms</option>
-                                    <option value="calving">Calving</option>
-                                    <option value="other">Other</option>
+                                    <option value="lame">Lameness</option>
+                                    <option value="mastitis">Mastitis</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label style={labelStyle}>Observation Notes</label>
-                                <textarea name="notes" rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
+                                <label style={labelStyle}>Notes</label>
+                                <textarea name="notes" rows="3" style={{ ...inputStyle, resize: 'none' }}></textarea>
                             </div>
 
-                            {error && (
-                                <div style={{ background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', color: 'var(--danger)' }}>
-                                    {error}
-                                </div>
-                            )}
+                            {error && <div style={{ color: 'var(--danger)', marginBottom: '16px' }}>{error}</div>}
 
-                            <button type="submit" disabled={loading} style={{
-                                width: '100%',
-                                padding: '14px',
-                                background: loading ? 'var(--mist)' : 'var(--barn)',
-                                color: 'var(--bg)',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontFamily: 'Cormorant Garamond, serif',
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                letterSpacing: '0.1em',
-                                textTransform: 'uppercase',
-                                cursor: loading ? 'not-allowed' : 'pointer',
-                                transition: 'background 0.2s',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }} className={loading ? '' : 'hover-lift'}>
-                                <i data-lucide={loading ? 'loader' : 'save'} style={{ width: '16px', height: '16px' }}></i>
+                            <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px', background: loading ? 'var(--mist)' : 'var(--barn)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                                 {loading ? 'Saving…' : 'Save Record'}
                             </button>
                         </form>
@@ -213,44 +155,21 @@ const DataEntryLog = () => {
                 </div>
             ) : (
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeIn 0.3s' }}>
-                        {logs.map((log, i) => (
-                            <div key={i} className="card" style={{ padding: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                                    <div>
-                                        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', fontWeight: 'bold', color: 'var(--ink)' }}>
-                                            COW {log.cow}
-                                        </div>
-                                        <div style={{ fontSize: '13px', color: 'var(--mist)', marginTop: '2px' }}>
-                                            {log.date}
-                                        </div>
-                                    </div>
-                                    <div style={{ background: 'rgba(0,0,0,0.04)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', color: 'var(--mist)' }}>
-                                        {log.user}
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: 'rgba(255,255,255,0.4)', padding: '12px', borderRadius: '6px' }}>
-                                    <div>
-                                        <div style={{ fontSize: '12px', color: 'var(--mist)', textTransform: 'uppercase', fontWeight: 'bold' }}>Yield</div>
-                                        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--barn)' }}>{log.yield}</div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '12px', color: 'var(--mist)', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '4px' }}>Event</div>
-                                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: log.event === 'None' ? 'var(--sage)' : 'var(--danger)', marginTop: '2px' }}>{log.event}</div>
-                                    </div>
-                                </div>
+                    {logs.map((log, i) => (
+                        <div key={i} className="card" style={{ padding: '16px', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <strong>COW {log.cow}</strong>
+                                <span style={{ fontSize: '12px', color: 'var(--mist)' }}>{log.user}</span>
                             </div>
-                        ))}
-                    </div>
+                            <div style={{ fontSize: '13px', color: 'var(--mist)' }}>{log.date}</div>
+                            <div style={{ marginTop: '8px', display: 'flex', gap: '20px' }}>
+                                <div><small>YIELD</small> <div>{log.yield}</div></div>
+                                <div><small>EVENT</small> <div style={{ color: log.event === 'None' ? 'var(--sage)' : 'var(--danger)' }}>{log.event}</div></div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(5px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
         </div>
     );
 };

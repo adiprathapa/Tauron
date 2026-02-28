@@ -64,7 +64,7 @@ def generate_farm(n_cows: int = N_COWS, n_pens: int = N_PENS,
     pen_assign = {i: i // (n_cows // n_pens) for i in range(n_cows)}
     bunk_pref  = {i: int(rng.integers(0, n_bunks)) for i in range(n_cows)}
     dim_base   = {i: int(rng.integers(5, 300)) for i in range(n_cows)}
-    base_yield = {i: float(rng.normal(28, 4).clip(18, 45)) for i in range(n_cows)}
+    base_yield = {i: float(np.clip(rng.normal(28, 4), 18, 45)) for i in range(n_cows)}
 
     rows = []
     for day in range(n_days):
@@ -76,12 +76,12 @@ def generate_farm(n_cows: int = N_COWS, n_pens: int = N_PENS,
                 date          = date,
                 pen_id        = pen_assign[cow],
                 bunk_id       = bunk,
-                activity      = float(rng.normal(450, 80).clip(200, 800)),
-                highly_active = float(rng.normal(2.5, 0.8).clip(0, 8)),
-                rumination_min= float(rng.normal(480, 45).clip(300, 620)),
-                feeding_min   = float(rng.normal(210, 35).clip(100, 360)),
-                ear_temp_c    = float(rng.normal(38.5, 0.3).clip(37.0, 40.5)),
-                milk_yield_kg = float(rng.normal(base_yield[cow], 1.5).clip(10, 50)),
+                activity      = float(np.clip(rng.normal(450, 80), 200, 800)),
+                highly_active = float(np.clip(rng.normal(2.5, 0.8), 0, 8)),
+                rumination_min= float(np.clip(rng.normal(480, 45), 300, 620)),
+                feeding_min   = float(np.clip(rng.normal(210, 35), 100, 360)),
+                ear_temp_c    = float(np.clip(rng.normal(38.5, 0.3), 37.0, 40.5)),
+                milk_yield_kg = float(np.clip(rng.normal(base_yield[cow], 1.5), 10, 50)),
                 health_event  = int(rng.random() < 0.01),
                 feeding_visits= int(rng.integers(3, 10)),
                 days_in_milk  = dim_base[cow] + day,

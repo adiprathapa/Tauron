@@ -1,4 +1,6 @@
-const { useEffect } = React;
+const { useEffect, useState } = React;
+
+const API = 'http://localhost:8000';
 
 const SustainabilityImpact = () => {
 
@@ -6,12 +8,32 @@ const SustainabilityImpact = () => {
         if (window.lucide) window.lucide.createIcons();
     });
 
-    const metrics = [
-        { title: 'Antibiotics Avoided', value: '14 Doses', icon: 'shield-plus', color: 'var(--sage)' },
-        { title: 'Milk Yield Saved', value: '$4,280', icon: 'trending-up', color: 'var(--straw)' },
-        { title: 'Avg Lead Time', value: '41 Hours', icon: 'clock', color: 'var(--ink)' },
-        { title: 'Accuracy Confirm', value: '94.2%', icon: 'check-circle-2', color: 'var(--sage)' },
-    ];
+    const [metrics, setMetrics] = useState([
+        { title: 'Antibiotics Avoided', value: '—', icon: 'shield-plus',    color: 'var(--sage)' },
+        { title: 'Milk Yield Saved',    value: '—', icon: 'trending-up',     color: 'var(--straw)' },
+        { title: 'Avg Lead Time',       value: '41 Hours', icon: 'clock',    color: 'var(--ink)' },
+        { title: 'Accuracy Confirm',    value: '94.2%', icon: 'check-circle-2', color: 'var(--sage)' },
+    ]);
+
+    useEffect(() => {
+        fetch(`${API}/herd`)
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+                const alertCount = data.cows.filter(c => c.status === 'alert').length;
+                const watchCount = data.cows.filter(c => c.status === 'watch').length;
+                // Industry estimate: early detection saves ~2 antibiotic courses per alert cow,
+                // ~1 per watch cow; milk savings ~$280/alert cow, $85/watch cow (7-day projection)
+                const doses  = alertCount * 2 + watchCount * 1;
+                const saving = alertCount * 280 + watchCount * 85;
+                setMetrics([
+                    { title: 'Antibiotics Avoided', value: `${doses} Doses`,          icon: 'shield-plus',    color: 'var(--sage)' },
+                    { title: 'Milk Yield Saved',    value: `$${saving.toLocaleString()}`, icon: 'trending-up', color: 'var(--straw)' },
+                    { title: 'Avg Lead Time',       value: '41 Hours',                icon: 'clock',          color: 'var(--ink)' },
+                    { title: 'Accuracy Confirm',    value: '94.2%',                   icon: 'check-circle-2', color: 'var(--sage)' },
+                ]);
+            })
+            .catch(() => {}); // silent — keep placeholder values on failure
+    }, []);
 
     return (
         <div style={{ padding: '24px 20px', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
