@@ -1,20 +1,40 @@
 const { useState, useEffect } = React;
 
+const API = 'http://localhost:8000';
+const PEN_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+const derivePen  = (id) => PEN_LABELS[Math.min(Math.floor(id / 10), PEN_LABELS.length - 1)] || 'X';
+const statusToLevel = (s) => s === 'alert' ? 'high' : (s === 'watch' ? 'warn' : 'ok');
+const fmtTime    = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const fmtFeature = (f) => f ? f.replace(/_/g, ' ') : '—';
+
 const AlertCard = ({ alert }) => {
     const [expanded, setExpanded] = useState(false);
+    const [explain, setExplain] = useState(null);
+    const [loadingExplain, setLoadingExplain] = useState(false);
 
     useEffect(() => {
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
+        if (window.lucide) window.lucide.createIcons();
     });
+
+    const handleExpand = () => {
+        const next = !expanded;
+        setExpanded(next);
+        if (next && !explain && !loadingExplain) {
+            setLoadingExplain(true);
+            fetch(`${API}/explain/${alert.cowId}`)
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(setExplain)
+                .catch(() => setExplain({ alert_text: 'Explanation unavailable — check backend.', top_edge: null }))
+                .finally(() => setLoadingExplain(false));
+        }
+    };
 
     const getColors = (level) => {
         switch (level) {
             case 'high': return { bg: 'var(--danger-bg)', border: 'rgba(224, 112, 80, 0.3)', dot: 'var(--danger)' };
             case 'warn': return { bg: 'var(--warning-bg)', border: 'rgba(201, 152, 58, 0.3)', dot: 'var(--straw)' };
-            case 'ok': return { bg: 'var(--success-bg)', border: 'rgba(106, 158, 72, 0.3)', dot: 'var(--sage)' };
-            default: return { bg: 'var(--success-bg)', border: 'rgba(106, 158, 72, 0.3)', dot: 'var(--sage)' };
+            default:     return { bg: 'var(--success-bg)', border: 'rgba(106, 158, 72, 0.3)', dot: 'var(--sage)' };
         }
     };
 
@@ -29,7 +49,7 @@ const AlertCard = ({ alert }) => {
             marginBottom: '12px',
             transition: 'all 0.3s ease',
             cursor: 'pointer'
-        }} onClick={() => setExpanded(!expanded)} className="hover-lift">
+        }} onClick={handleExpand} className="hover-lift">
 
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -43,7 +63,6 @@ const AlertCard = ({ alert }) => {
                         Pen {alert.pen}
                     </span>
                 </div>
-
                 <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '12px', fontWeight: '600', color: colors.dot }}>
                     {alert.time}
                 </div>
@@ -54,7 +73,7 @@ const AlertCard = ({ alert }) => {
             </div>
 
             <div style={{ marginTop: '8px', fontSize: '16px', color: '#444' }}>
-                <strong style={{ color: 'var(--ink)' }}>Action:</strong> {alert.action}
+                <strong style={{ color: 'var(--ink)' }}>Signal:</strong> {fmtFeature(alert.top_feature)}
             </div>
 
             <div style={{
@@ -67,13 +86,26 @@ const AlertCard = ({ alert }) => {
                 <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--mist)', letterSpacing: '0.1em', marginBottom: '6px' }}>
                     XAI Trace
                 </div>
-                <div style={{ fontSize: '16px', color: '#444', lineHeight: '1.4' }}>
-                    {alert.xai}
-                </div>
-                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px', color: 'var(--sage)', fontWeight: '600' }}>
-                    <i data-lucide="check-circle" style={{ width: '12px', height: '12px' }}></i>
-                    Model Confidence: {alert.confidence}%
-                </div>
+
+                {loadingExplain ? (
+                    <div style={{ fontSize: '14px', color: 'var(--mist)' }}>Loading explanation…</div>
+                ) : explain ? (
+                    <>
+                        <div style={{ fontSize: '16px', color: '#444', lineHeight: '1.4', marginBottom: '8px' }}>
+                            {explain.alert_text}
+                        </div>
+                        {explain.top_edge && (explain.top_edge.to != null || explain.top_edge.neighbour_cow != null) && (
+                            <div style={{ fontSize: '14px', color: 'var(--mist)', marginBottom: '6px' }}>
+                                Contact: Cow #{explain.top_edge.to ?? explain.top_edge.neighbour_cow}
+                                {' '}· weight {(explain.top_edge.weight ?? 0).toFixed(2)}
+                            </div>
+                        )}
+                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px', color: 'var(--sage)', fontWeight: '600' }}>
+                            <i data-lucide="check-circle" style={{ width: '12px', height: '12px' }}></i>
+                            Model Confidence: {alert.confidence}%
+                        </div>
+                    </>
+                ) : null}
             </div>
 
             <div style={{
@@ -95,19 +127,60 @@ const AlertCard = ({ alert }) => {
 };
 
 const MorningAlertFeed = () => {
+    const [herd, setHerd]       = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError]     = useState(null);
 
-    // Using Lucide icons by creating elements
     useEffect(() => {
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
+        if (window.lucide) window.lucide.createIcons();
     });
 
-    const mockAlerts = [
-        { id: 1, cowId: '8492', pen: 'A2', level: 'high', time: '05:22 AM', message: 'High risk of mastitis onset within 48h.', action: 'Examine udder and isolate if inflamed.', xai: 'Cow 8492 spent 4h adjacent to confirmed mastitis case (Cow 7118). Milk yield dropped 14% at PM milking.', confidence: 89 },
-        { id: 2, cowId: '9104', pen: 'B1', level: 'warn', time: '06:15 AM', message: 'Elevated somatic cell count pattern detected.', action: 'Schedule for CMT paddle test.', xai: 'Gradual increase in conductivity sensor readings over past 3 days, combined with restless behavior in stall.', confidence: 72 },
-        { id: 3, cowId: '6021', pen: 'C4', level: 'warn', time: 'YESTERDAY', message: 'Minor lameness early indicator.', action: 'Observe gait during next parlor transfer.', xai: 'Step count dropped 22% compared to historical baseline. Lying time increased by 3.5 hours.', confidence: 68 },
-    ];
+    useEffect(() => {
+        fetch(`${API}/herd`)
+            .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+            .then(setHerd)
+            .catch(e => setError(String(e)))
+            .finally(() => setLoading(false));
+    }, []);
+
+    if (loading) return (
+        <div style={{ padding: '24px 20px', textAlign: 'center', color: 'var(--mist)', fontFamily: 'Cormorant Garamond, serif', fontSize: '18px', paddingTop: '80px' }}>
+            Loading herd data…
+        </div>
+    );
+
+    if (error) return (
+        <div style={{ padding: '24px 20px' }}>
+            <div className="kicker" style={{ marginBottom: '16px', fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontWeight: '700' }}>Morning Alert Feed</div>
+            <div style={{ background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: '8px', padding: '16px', color: 'var(--danger)', fontFamily: 'Cormorant Garamond, serif', fontSize: '15px', lineHeight: '1.5' }}>
+                <strong>Backend unavailable.</strong> Start the server:<br/>
+                <code style={{ fontSize: '13px' }}>uvicorn backend.main:app --reload</code>
+                <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.6 }}>{error}</div>
+            </div>
+        </div>
+    );
+
+    const cows = herd.cows || [];
+    const alertCount = cows.filter(c => c.status === 'alert').length;
+    const watchCount = cows.filter(c => c.status === 'watch').length;
+    const okCount    = cows.filter(c => c.status === 'ok').length;
+
+    const nonOkCows = cows
+        .filter(c => c.status !== 'ok')
+        .sort((a, b) => (a.status === 'alert' ? -1 : 1) - (b.status === 'alert' ? -1 : 1) || b.risk_score - a.risk_score);
+
+    const now = fmtTime();
+    const alerts = nonOkCows.map(c => ({
+        cowId:       c.id,
+        pen:         derivePen(c.id),
+        level:       statusToLevel(c.status),
+        time:        now,
+        message:     `${c.dominant_disease ? c.dominant_disease.charAt(0).toUpperCase() + c.dominant_disease.slice(1) : 'Risk'} — ${Math.round(c.risk_score * 100)}% within 48h`,
+        top_feature: c.top_feature,
+        confidence:  c.all_risks && c.dominant_disease
+                       ? Math.round(c.all_risks[c.dominant_disease] * 100)
+                       : Math.round(c.risk_score * 100),
+    }));
 
     return (
         <div style={{ padding: '24px 20px', minHeight: '100%' }}>
@@ -121,15 +194,15 @@ const MorningAlertFeed = () => {
                 marginBottom: '32px'
             }}>
                 <div className="card" style={{ padding: '12px 16px', textAlign: 'center', borderColor: 'rgba(106, 158, 72, 0.3)' }}>
-                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: '700', color: 'var(--sage-lt)', lineHeight: '1' }}>832</div>
+                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: '700', color: 'var(--sage-lt)', lineHeight: '1' }}>{okCount}</div>
                     <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '12px', fontWeight: '700', color: 'var(--mist)', letterSpacing: '0.1em', marginTop: '4px' }}>HEALTHY</div>
                 </div>
                 <div className="card" style={{ padding: '12px 16px', textAlign: 'center', borderColor: 'rgba(201, 152, 58, 0.3)' }}>
-                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: '700', color: 'var(--straw)', lineHeight: '1' }}>7</div>
+                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: '700', color: 'var(--straw)', lineHeight: '1' }}>{watchCount}</div>
                     <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '12px', fontWeight: '700', color: 'var(--mist)', letterSpacing: '0.1em', marginTop: '4px' }}>MONITOR</div>
                 </div>
                 <div className="card" style={{ padding: '12px 16px', textAlign: 'center', borderColor: 'rgba(224, 112, 80, 0.3)' }}>
-                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: '700', color: 'var(--danger)', lineHeight: '1' }}>1</div>
+                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', fontWeight: '700', color: 'var(--danger)', lineHeight: '1' }}>{alertCount}</div>
                     <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '12px', fontWeight: '700', color: 'var(--mist)', letterSpacing: '0.1em', marginTop: '4px' }}>ACT NOW</div>
                 </div>
             </div>
@@ -149,9 +222,15 @@ const MorningAlertFeed = () => {
                 <i data-lucide="list-filter" style={{ width: '12px', height: '12px' }}></i> Action Items
             </div>
 
-            <div>
-                {mockAlerts.map(alert => <AlertCard key={alert.id} alert={alert} />)}
-            </div>
+            {alerts.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--mist)', fontFamily: 'Cormorant Garamond, serif', fontSize: '18px', padding: '32px 0' }}>
+                    All cows healthy — no action needed today.
+                </div>
+            ) : (
+                <div>
+                    {alerts.map(alert => <AlertCard key={alert.cowId} alert={alert} />)}
+                </div>
+            )}
 
         </div>
     );

@@ -1,14 +1,21 @@
 # Tauron Backend — XAI + LLM dependencies
-# Install: pip install -r backend/requirements.txt
 #
-# LLM: Ollama is used (not llama-cpp-python) — install separately:
-#   brew install ollama && ollama pull mistral
-# See claude.md for rationale.
+# FIRST-TIME SETUP (recommended):
+#   chmod +x setup.sh && ./setup.sh
+#   → installs these pip packages + Ollama + Mistral-7B in one step
+#
+# Python-only install (if Ollama is already installed):
+#   pip install -r backend/requirements.txt
+#
+# Note: Ollama is a system binary (not a pip package).
+#   Install manually: brew install ollama && ollama pull mistral
 
 # Core API
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 pydantic==2.12.5
+aiofiles==23.2.1      # required by StaticFiles for async file serving
+python-multipart==0.0.9  # required for multipart/form-data (CSV upload)
 
 # HTTP client — for Ollama REST API calls
 httpx==0.27.0

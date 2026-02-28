@@ -1,34 +1,61 @@
 const { useEffect, useRef, useState } = React;
 
+const API = 'http://localhost:8000';
+const PEN_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+const derivePen    = (id) => 'Pen ' + (PEN_LABELS[Math.min(Math.floor(id / 10), PEN_LABELS.length - 1)] || 'X');
+const statusToRisk = (s)  => s === 'alert' ? 'high' : (s === 'watch' ? 'warn' : 'ok');
+
 const HerdMap = () => {
     const svgRef = useRef();
-    const [selectedNode, setSelectedNode] = useState(null);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const graphData = useRef(null);
+    const [selectedNode, setSelectedNode]     = useState(null);
+    const [selectedExplain, setSelectedExplain] = useState(null);
+    const [isMobile, setIsMobile]             = useState(window.innerWidth < 768);
+    const [herdData, setHerdData]             = useState(null);
+    const [loading, setLoading]               = useState(true);
+    const [error, setError]                   = useState(null);
 
-    // Generate mock graph data once
-    if (!graphData.current) {
-        const nodes = Array.from({ length: 40 }, (_, i) => ({
-            id: `Cow ${2000 + i}`,
-            group: Math.floor(Math.random() * 4) + 1,
-            risk: Math.random() > 0.8 ? 'high' : (Math.random() > 0.5 ? 'warn' : 'ok'),
-            pen: `Pen ${String.fromCharCode(65 + Math.floor(i / 10))}`
-        }));
+    // Fetch /herd on mount
+    useEffect(() => {
+        fetch(`${API}/herd`)
+            .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+            .then(data => {
+                const nodes = data.cows.map(c => ({
+                    id:              `Cow ${c.id}`,
+                    cowId:           c.id,
+                    group:           Math.floor(c.id / 10) + 1,
+                    risk:            statusToRisk(c.status),
+                    pen:             derivePen(c.id),
+                    riskScore:       c.risk_score,
+                    dominantDisease: c.dominant_disease,
+                    allRisks:        c.all_risks,
+                }));
 
-        const links = [];
-        for (let i = 0; i < 60; i++) {
-            let source = Math.floor(Math.random() * 40);
-            let target = Math.floor(Math.random() * 40);
-            if (source !== target) {
-                links.push({
-                    source: `Cow ${2000 + source}`,
-                    target: `Cow ${2000 + target}`,
-                    value: Math.random()
-                });
-            }
-        }
-        graphData.current = { nodes, links };
-    }
+                // Adjacency matrix → undirected link list (i < j dedup)
+                const links = [];
+                const adj   = data.adjacency || [];
+                for (let i = 0; i < adj.length; i++) {
+                    for (let j = i + 1; j < (adj[i] || []).length; j++) {
+                        if (adj[i][j]) {
+                            links.push({ source: nodes[i].id, target: nodes[j].id, value: 1 });
+                        }
+                    }
+                }
+                setHerdData({ nodes, links });
+            })
+            .catch(e => setError(String(e)))
+            .finally(() => setLoading(false));
+    }, []);
+
+    // Fetch /explain when a node is selected
+    useEffect(() => {
+        if (!selectedNode) return;
+        setSelectedExplain(null);
+        fetch(`${API}/explain/${selectedNode.cowId}`)
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(setSelectedExplain)
+            .catch(() => {});
+    }, [selectedNode]);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -36,92 +63,93 @@ const HerdMap = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // D3 force graph — re-runs when herdData changes
     useEffect(() => {
-        if (isMobile) return;
-        if (!svgRef.current) return;
-
-        // Ensure D3 is loaded
+        if (isMobile || !svgRef.current || !herdData) return;
         if (typeof d3 === 'undefined') return;
 
-        const width = svgRef.current.clientWidth;
+        const width  = svgRef.current.clientWidth;
         const height = svgRef.current.clientHeight || 400;
 
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
 
-        // Create a deep copy for simulation because D3 mutates properties
-        const nodes = graphData.current.nodes.map(d => ({ ...d }));
-        const links = graphData.current.links.map(d => ({ ...d }));
+        // Deep copy so D3 mutation doesn't touch React state
+        const nodes = herdData.nodes.map(d => ({ ...d }));
+        const links = herdData.links.map(d => ({ ...d }));
 
         const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(60))
-            .force("charge", d3.forceManyBody().strength(-150))
-            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("link",    d3.forceLink(links).id(d => d.id).distance(60))
+            .force("charge",  d3.forceManyBody().strength(-150))
+            .force("center",  d3.forceCenter(width / 2, height / 2))
             .force("collide", d3.forceCollide().radius(20));
 
-        // Colors based on CSS variables
         const getColor = (risk) => {
-            if (risk === 'high') return '#E07050';    // --danger
-            if (risk === 'warn') return '#C9983A';    // --straw
-            return '#6A9E48';                         // --sage
+            if (risk === 'high') return '#E07050';
+            if (risk === 'warn') return '#C9983A';
+            return '#6A9E48';
         };
 
         const link = svg.append("g")
-            .attr("stroke", "rgba(216, 208, 196, 0.4)") // --line
+            .attr("stroke", "rgba(216, 208, 196, 0.4)")
             .attr("stroke-opacity", 0.6)
             .selectAll("line")
             .data(links)
             .join("line")
-            .attr("stroke-width", d => Math.max(0.5, Math.sqrt(d.value) * 2));
+            .attr("stroke", d => d.isTransmission ? "#E07050" : "rgba(216, 208, 196, 0.4)")
+            .attr("stroke-opacity", d => d.isTransmission ? 0.9 : 0.6)
+            .attr("stroke-width", d => d.isTransmission ? 2.5 : Math.max(0.5, Math.sqrt(d.value) * 2))
+            .style("filter", d => d.isTransmission ? "url(#edge-glow)" : "none");
 
         const node = svg.append("g")
-            .attr("stroke", "#FAF7F2") // --card
+            .attr("stroke", "#FAF7F2")
             .attr("stroke-width", 1.5)
             .selectAll("circle")
             .data(nodes)
-            .join("circle")
-            .attr("r", d => d.risk === 'high' ? 12 : 8)
-            .attr("fill", d => getColor(d.risk))
+            .join("g")
             .style("cursor", "pointer")
-            .on("click", (event, d) => {
-                setSelectedNode(d);
-            });
+            .on("click", (event, d) => setSelectedNode(d));
+
+        node.append("circle")
+            .attr("stroke", "#FAF7F2") // --card
+            .attr("stroke-width", 1.5)
+            .attr("r", d => d.riskLevel > 0.70 ? 14 : 8)
+            .attr("fill", d => getColor(d.risk))
+            .style("filter", d => d.riskLevel > 0.70 ? "url(#node-glow)" : "none");
+
+        node.filter(d => d.riskLevel > 0.70)
+            .append("text")
+            .text(d => d.id.replace('Cow ', ''))
+            .attr("text-anchor", "middle")
+            .attr("dy", "0.3em")
+            .attr("fill", "#FAF7F2")
+            .style("font-size", "9px")
+            .style("font-family", "JetBrains Mono, monospace")
+            .style("font-weight", "bold")
+            .style("pointer-events", "none");
 
         node.call(d3.drag()
             .on("start", (event, d) => {
                 if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x;
-                d.fy = d.y;
+                d.fx = d.x; d.fy = d.y;
             })
-            .on("drag", (event, d) => {
-                d.fx = event.x;
-                d.fy = event.y;
-            })
-            .on("end", (event, d) => {
+            .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
+            .on("end",  (event, d) => {
                 if (!event.active) simulation.alphaTarget(0);
-                d.fx = null;
-                d.fy = null;
+                d.fx = null; d.fy = null;
             }));
 
-        // Pulse high risk
         function pulse() {
             svg.selectAll("circle").filter(d => d.risk === 'high')
-                .transition()
-                .duration(1000)
-                .attr("r", 15)
-                .attr("stroke-width", 3)
-                .attr("stroke", "rgba(224, 112, 80, 0.4)")
-                .transition()
-                .duration(1000)
-                .attr("r", 12)
-                .attr("stroke-width", 1.5)
-                .attr("stroke", "#FAF7F2")
+                .transition().duration(1000)
+                .attr("r", 15).attr("stroke-width", 3).attr("stroke", "rgba(224, 112, 80, 0.4)")
+                .transition().duration(1000)
+                .attr("r", 12).attr("stroke-width", 1.5).attr("stroke", "#FAF7F2")
                 .on("end", pulse);
         }
         pulse();
 
-        node.append("title")
-            .text(d => d.id);
+        node.append("title").text(d => d.id);
 
         simulation.on("tick", () => {
             link
@@ -129,21 +157,24 @@ const HerdMap = () => {
                 .attr("y1", d => d.source.y)
                 .attr("x2", d => d.target.x)
                 .attr("y2", d => d.target.y);
-
             node
-                .attr("cx", d => d.x = Math.max(15, Math.min(width - 15, d.x)))
-                .attr("cy", d => d.y = Math.max(15, Math.min(height - 15, d.y)));
+                .attr("transform", d => {
+                    d.x = Math.max(15, Math.min(width - 15, d.x));
+                    d.y = Math.max(15, Math.min(height - 15, d.y));
+                    return `translate(${d.x},${d.y})`;
+                });
         });
 
         return () => simulation.stop();
-    }, [isMobile]);
+    }, [isMobile, herdData]);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
     });
 
     const renderMobileGrid = () => {
-        const pens = graphData.current.nodes.reduce((acc, node) => {
+        if (!herdData) return null;
+        const pens = herdData.nodes.reduce((acc, node) => {
             if (!acc[node.pen]) acc[node.pen] = [];
             acc[node.pen].push(node);
             return acc;
@@ -171,13 +202,22 @@ const HerdMap = () => {
                                         background: getColor(cow.risk),
                                         borderRadius: '8px',
                                         cursor: 'pointer',
-                                        boxShadow: cow.risk === 'high' ? '0 0 12px rgba(224, 112, 80, 0.5)' : 'none',
-                                        opacity: cow.risk === 'ok' ? 0.4 : 1,
+                                        boxShadow: cow.riskLevel > 0.70 ? '0 0 12px rgba(224, 112, 80, 0.6)' : 'none',
+                                        opacity: cow.riskLevel <= 0.4 ? 0.4 : 1,
                                         transition: 'all 0.2s',
-                                        animation: cow.risk === 'high' ? 'pulse-ring 2s infinite' : 'none'
+                                        animation: cow.riskLevel > 0.70 ? 'pulse-ring 2s infinite' : 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#FAF7F2',
+                                        fontFamily: 'JetBrains Mono, monospace',
+                                        fontSize: '10px',
+                                        fontWeight: 'bold'
                                     }}
                                     title={cow.id}
-                                />
+                                >
+                                    {cow.riskLevel > 0.70 ? cow.id.replace('Cow ', '') : ''}
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -190,8 +230,18 @@ const HerdMap = () => {
         <div style={{ padding: '24px 20px', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <div className="kicker" style={{ marginBottom: '16px', flexShrink: 0, fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontWeight: '700' }}>Herd Map & Contacts</div>
 
+            {error && (
+                <div style={{ background: 'var(--danger-bg)', border: '1px solid rgba(224,112,80,0.3)', borderRadius: '8px', padding: '12px 16px', color: 'var(--danger)', fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', marginBottom: '12px' }}>
+                    Cannot reach backend — run: <code>uvicorn backend.main:app --reload</code>
+                </div>
+            )}
+
             <div style={{ flex: 1, minHeight: '400px', width: '100%', background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--line)', overflow: 'hidden', position: 'relative' }}>
-                {isMobile ? (
+                {loading ? (
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mist)', fontFamily: 'Cormorant Garamond, serif', fontSize: '18px' }}>
+                        Building herd graph…
+                    </div>
+                ) : isMobile ? (
                     <div style={{ padding: '16px', height: '100%', overflowY: 'auto' }}>
                         {renderMobileGrid()}
                     </div>
@@ -201,18 +251,19 @@ const HerdMap = () => {
             </div>
 
             {selectedNode && (
-                <div style={{
+                <div className="panel-enter-active" style={{
                     position: 'absolute',
                     bottom: '40px',
                     left: '20px',
                     right: '20px',
                     background: 'var(--dark-bg)',
                     borderRadius: '12px',
-                    padding: '20px',
+                    padding: '24px',
                     color: 'var(--bg)',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-                    border: '1px solid #333',
-                    zIndex: 10
+                    boxShadow: selectedNode.riskLevel > 0.70 ? '0 0 30px rgba(224, 112, 80, 0.3)' : '0 20px 40px rgba(0,0,0,0.3)',
+                    border: selectedNode.riskLevel > 0.70 ? '1px solid var(--danger)' : '1px solid #333',
+                    zIndex: 10,
+                    transformOrigin: 'bottom center'
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                         <div>
@@ -227,23 +278,38 @@ const HerdMap = () => {
                             </div>
                         </div>
                         <button
-                            onClick={() => setSelectedNode(null)}
+                            onClick={() => { setSelectedNode(null); setSelectedExplain(null); }}
                             style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
                         >
                             <i data-lucide="x" style={{ width: '20px', height: '20px' }}></i>
                         </button>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: selectedExplain ? '12px' : '16px' }}>
                         <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '6px' }}>
-                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '6px' }}>Avg Yield</div>
-                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--straw-lt)' }}>42.1 kg</div>
+                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '6px' }}>Risk Score</div>
+                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--straw-lt)' }}>
+                                {Math.round(selectedNode.riskScore * 100)}%
+                            </div>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '6px' }}>
-                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '6px' }}>Activity</div>
-                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--sage-lt)' }}>Normal</div>
+                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '6px' }}>Disease</div>
+                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--sage-lt)' }}>
+                                {selectedNode.dominantDisease
+                                    ? selectedNode.dominantDisease.charAt(0).toUpperCase() + selectedNode.dominantDisease.slice(1)
+                                    : 'OK'}
+                            </div>
                         </div>
                     </div>
+
+                    {selectedExplain && (
+                        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
+                            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '13px', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '6px' }}>Alert</div>
+                            <div style={{ fontSize: '15px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.4' }}>
+                                {selectedExplain.alert_text}
+                            </div>
+                        </div>
+                    )}
 
                     <button style={{
                         width: '100%',

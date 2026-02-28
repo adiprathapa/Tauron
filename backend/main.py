@@ -15,8 +15,10 @@ Mock mode:
 CORS: allow_origins=["*"] is intentional for localhost dev — lock down if deployed.
 """
 
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.mock_data import MOCK_HERD, MOCK_EXPLAIN, USE_MOCK
@@ -53,9 +55,88 @@ class ExplainResponse(BaseModel):
     alert_text: str                  # plain-English farmer alert
 
 
+class IngestPayload(BaseModel):
+    cow_id: int
+    yield_kg: Optional[float] = None
+    pen: Optional[str] = None
+    health_event: Optional[str] = "none"
+    notes: Optional[str] = ""
+
+
+# In-memory log — resets on server restart (fine for hackathon demo)
+_ingest_log: list[dict] = []
+
+
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# In-memory record store — per-process, reset on restart (upgrade to DB later)
+# ---------------------------------------------------------------------------
+
+_records: List[dict] = []
+
+
+# ---------------------------------------------------------------------------
+# Normalisation helpers — all return List[{cow_id, date, metric, value}]
+# ---------------------------------------------------------------------------
+
+def _normalize_manual(body: dict) -> List[dict]:
+    """Single manual-entry JSON: {cow_id, date?, milk_yield_kg?, pen_id?, health_event?}"""
+    cow_id = int(body["cow_id"])
+    dt = str(body.get("date") or date.today().isoformat())
+    out = []
+    if body.get("milk_yield_kg") is not None:
+        out.append({"cow_id": cow_id, "date": dt, "metric": "milk_yield_kg",
+                    "value": float(body["milk_yield_kg"])})
+    if body.get("pen_id"):
+        out.append({"cow_id": cow_id, "date": dt, "metric": "pen_id",
+                    "value": str(body["pen_id"])})
+    event = body.get("health_event")
+    if event and event != "none":
+        out.append({"cow_id": cow_id, "date": dt, "metric": "health_event", "value": 1.0})
+        out.append({"cow_id": cow_id, "date": dt, "metric": "health_event_type",
+                    "value": str(event)})
+    return out
+
+
+def _normalize_webhook(body: dict) -> List[dict]:
+    """Single webhook record: {cow_id, metric, value, timestamp?}"""
+    ts = body.get("timestamp") or date.today().isoformat()
+    try:
+        dt = str(datetime.fromisoformat(str(ts).replace("Z", "+00:00")).date())
+    except (ValueError, AttributeError):
+        dt = date.today().isoformat()
+    return [{"cow_id": int(body["cow_id"]), "date": dt,
+             "metric": str(body["metric"]), "value": body["value"]}]
+
+
+def _normalize_batch(records: list) -> List[dict]:
+    """Batch mode: {records: [{cow_id, date?, ...}, ...]}"""
+    out = []
+    for r in records:
+        out.extend(_normalize_manual(r))
+    return out
+
+
+def _normalize_csv(df: pd.DataFrame) -> List[dict]:
+    """Wide-format CSV: columns = [cow_id, date?, metric1, metric2, ...]"""
+    if "date" not in df.columns:
+        df = df.copy()
+        df["date"] = date.today().isoformat()
+    id_cols = {"cow_id", "date"}
+    metric_cols = [c for c in df.columns if c not in id_cols]
+    out = []
+    for _, row in df.iterrows():
+        cow_id = int(row["cow_id"])
+        dt = str(row["date"])
+        for col in metric_cols:
+            val = row[col]
+            if pd.notna(val):
+                out.append({"cow_id": cow_id, "date": dt, "metric": col, "value": val})
+    return out
+
 
 app = FastAPI(
     title="Tauron API",
@@ -70,7 +151,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],    # intentional for localhost dev — see claude.md
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -131,3 +212,17 @@ async def get_explain(cow_id: int):
         return await explain_cow(cow_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/ingest")
+async def ingest(payload: IngestPayload):
+    """
+    Accept a single manual farm observation.
+    Stores in-memory for the session (resets on restart).
+    Returns: {status, rows}
+    """
+    from datetime import datetime
+    record = payload.model_dump()
+    record["timestamp"] = datetime.utcnow().isoformat()
+    _ingest_log.append(record)
+    return {"status": "ok", "rows": 1, "total": len(_ingest_log)}

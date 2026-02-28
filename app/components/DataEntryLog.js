@@ -10,15 +10,53 @@ const DataEntryLog = () => {
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
-    });
+    }, [view, submitted]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(true);
-        setTimeout(() => {
-            setSubmitted(false);
+        setLoading(true);
+        setError(null);
+
+        const fd = new FormData(e.target);
+        const payload = {
+            cow_id:       Number(fd.get('cow_id')),
+            yield_kg:     fd.get('yield_kg') ? Number(fd.get('yield_kg')) : null,
+            pen:          fd.get('pen'),
+            health_event: fd.get('health_event'),
+            notes:        fd.get('notes') || '',
+        };
+
+        try {
+            const res = await fetch(`${API}/api/ingest`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({ detail: res.statusText }));
+                throw new Error(errData.detail || `Error ${res.status}`);
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            setLogs(prev => [{
+                date: `Today, ${timeStr}`,
+                cow: String(payload.cow_id),
+                yield: payload.yield_kg != null ? `${payload.yield_kg}L` : '—',
+                event: payload.health_event === 'none' ? 'None' : payload.health_event,
+                user: 'Manual Entry',
+            }, ...prev]);
+
+            setSubmitted(true);
             e.target.reset();
-        }, 2000);
+            setTimeout(() => setSubmitted(false), 2000);
+        } catch (err) {
+            setError(err.message || 'Failed to save record');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleFileUpload = (e) => {
@@ -89,7 +127,6 @@ const DataEntryLog = () => {
         color: 'var(--ink)',
         marginBottom: '16px',
         outline: 'none',
-        transition: 'border-color 0.2s'
     };
 
     const labelStyle = {
@@ -100,7 +137,7 @@ const DataEntryLog = () => {
         color: 'var(--mist)',
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
-        marginBottom: '6px'
+        marginBottom: '6px',
     };
 
     return (
@@ -109,42 +146,8 @@ const DataEntryLog = () => {
                 <div className="kicker" style={{ margin: 0, fontFamily: 'Cormorant Garamond, serif', fontSize: '16px', fontWeight: '700' }}>Data & Records</div>
 
                 <div style={{ display: 'flex', background: 'var(--card)', borderRadius: '6px', border: '1px solid var(--line)', overflow: 'hidden' }}>
-                    <button
-                        onClick={() => setView('entry')}
-                        style={{
-                            padding: '6px 12px',
-                            background: view === 'entry' ? 'var(--dark-bg)' : 'transparent',
-                            color: view === 'entry' ? 'var(--bg)' : 'var(--mist)',
-                            border: 'none',
-                            fontFamily: 'Cormorant Garamond, serif',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        Entry
-                    </button>
-                    <button
-                        onClick={() => setView('log')}
-                        style={{
-                            padding: '6px 12px',
-                            background: view === 'log' ? 'var(--dark-bg)' : 'transparent',
-                            color: view === 'log' ? 'var(--bg)' : 'var(--mist)',
-                            border: 'none',
-                            fontFamily: 'Cormorant Garamond, serif',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        Log
-                    </button>
+                    <button onClick={() => setView('entry')} style={{ padding: '6px 12px', background: view === 'entry' ? 'var(--dark-bg)' : 'transparent', color: view === 'entry' ? 'var(--bg)' : 'var(--mist)', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 'bold' }}>Entry</button>
+                    <button onClick={() => setView('log')} style={{ padding: '6px 12px', background: view === 'log' ? 'var(--dark-bg)' : 'transparent', color: view === 'log' ? 'var(--bg)' : 'var(--mist)', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontWeight: 'bold' }}>Log</button>
                 </div>
             </div>
 
@@ -243,7 +246,7 @@ const DataEntryLog = () => {
                             <input
                                 type="file"
                                 accept=".csv"
-                                style={{ display: 'none' }}
+                                style={{ display: 'none' }}ib
                                 ref={fileInputRef}
                                 onChange={handleFileUpload}
                             />
@@ -277,42 +280,30 @@ const DataEntryLog = () => {
                 </>
             ) : (
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeIn 0.3s' }}>
-                        {mockLogs.map((log, i) => (
-                            <div key={i} className="card" style={{ padding: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                                    <div>
-                                        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '14px', fontWeight: 'bold', color: 'var(--ink)' }}>
-                                            COW {log.cow}
-                                        </div>
-                                        <div style={{ fontSize: '13px', color: 'var(--mist)', marginTop: '2px' }}>
-                                            {log.date}
-                                        </div>
-                                    </div>
-                                    <div style={{ background: 'rgba(0,0,0,0.04)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', color: 'var(--mist)' }}>
-                                        {log.user}
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: 'rgba(255,255,255,0.4)', padding: '12px', borderRadius: '6px' }}>
-                                    <div>
-                                        <div style={{ fontSize: '12px', color: 'var(--mist)', textTransform: 'uppercase', fontWeight: 'bold' }}>Yield</div>
-                                        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '24px', fontWeight: 'bold', color: 'var(--barn)' }}>{log.yield}</div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '12px', color: 'var(--mist)', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '4px' }}>Event</div>
-                                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: log.event === 'None' ? 'var(--sage)' : 'var(--danger)', marginTop: '2px' }}>{log.event}</div>
-                                    </div>
-                                </div>
+                    {logs.map((log, i) => (
+                        <div key={i} className="card" style={{ padding: '16px', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <strong>COW {log.cow}</strong>
+                                <span style={{ fontSize: '12px', color: 'var(--mist)' }}>{log.user}</span>
                             </div>
-                        ))}
-                    </div>
+                            <div style={{ fontSize: '13px', color: 'var(--mist)' }}>{log.date}</div>
+                            <div style={{ marginTop: '8px', display: 'flex', gap: '20px' }}>
+                                <div><small>YIELD</small> <div>{log.yield}</div></div>
+                                <div><small>EVENT</small> <div style={{ color: log.event === 'None' ? 'var(--sage)' : 'var(--danger)' }}>{log.event}</div></div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
+
             <style>{`
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(5px); }
-                    to { opacity: 1; transform: translateY(0); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to   { transform: rotate(360deg); }
                 }
                 @keyframes spin {
                     from { transform: rotate(0deg); }
