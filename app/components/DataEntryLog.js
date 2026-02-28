@@ -1,22 +1,12 @@
 const { useState, useEffect, useRef } = React;
 
-const API = 'http://localhost:8000';
-
 const DataEntryLog = () => {
-    const [view, setView]               = useState('entry');
-    const [submitted, setSubmitted]     = useState(false);
-    const [loading, setLoading]         = useState(false);
-    const [error, setError]             = useState(null);
-    const [uploading, setUploading]     = useState(false);
+    const [view, setView] = useState('entry'); // 'entry' or 'log'
+    const [submitted, setSubmitted] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [uploadSuccess, setUploadSuccess] = useState('');
     const fileInputRef = useRef(null);
-    const [logs, setLogs] = useState([
-        { date: 'Today, 06:12 AM', cow: '8492', yield: '31L', event: 'Mastitis suspected', user: 'Farm Hand JS' },
-        { date: 'Yesterday, 17:45 PM', cow: '9104', yield: '40L', event: 'None', user: 'Automated Parlor' },
-        { date: 'Yesterday, 05:30 AM', cow: '6021', yield: '44L', event: 'Lame off right hind', user: 'Farm Hand JS' },
-        { date: 'Oct 12, 18:00 PM', cow: '8492', yield: '36L', event: 'None', user: 'Automated Parlor' },
-    ]);
 
     useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
@@ -82,7 +72,7 @@ const DataEntryLog = () => {
             try {
                 const text = event.target.result;
                 const lines = text.split('\n').filter(line => line.trim() !== '');
-                if (lines.length < 2) throw new Error('CSV is empty or missing data rows.');
+                if (lines.length < 2) throw new Error("CSV is empty or missing data rows.");
 
                 const headers = lines[0].split(',').map(h => h.trim());
                 const data = lines.slice(1).map(line => {
@@ -93,29 +83,38 @@ const DataEntryLog = () => {
                     }, {});
                 });
 
-                const response = await fetch(`${API}/api/ingest`, {
+                const response = await fetch('/api/ingest', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ records: data }),
+                    body: JSON.stringify({ records: data })
                 });
 
-                if (!response.ok) throw new Error(`Server returned status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
 
                 setUploadSuccess(`Successfully uploaded ${data.length} records.`);
                 if (fileInputRef.current) fileInputRef.current.value = '';
             } catch (err) {
-                setUploadError(err.message || 'Failed to parse or upload CSV.');
+                setUploadError(err.message || "Failed to parse or upload CSV.");
             } finally {
                 setUploading(false);
-                setTimeout(() => setUploadSuccess(''), 4000);
+                setTimeout(() => { setUploadSuccess(''); }, 4000);
             }
         };
         reader.onerror = () => {
-            setUploadError('Error reading file.');
+            setUploadError("Error reading file.");
             setUploading(false);
         };
         reader.readAsText(file);
     };
+
+    const mockLogs = [
+        { date: 'Today, 06:12 AM', cow: '8492', yield: '31L', event: 'Mastitis suspected', user: 'Farm Hand JS' },
+        { date: 'Yesterday, 17:45 PM', cow: '9104', yield: '40L', event: 'None', user: 'Automated Parlor' },
+        { date: 'Yesterday, 05:30 AM', cow: '6021', yield: '44L', event: 'Lame off right hind', user: 'Farm Hand JS' },
+        { date: 'Oct 12, 18:00 PM', cow: '8492', yield: '36L', event: 'None', user: 'Automated Parlor' },
+    ];
 
     const inputStyle = {
         width: '100%',
@@ -171,17 +170,17 @@ const DataEntryLog = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div>
                                         <label style={labelStyle}>Cow ID</label>
-                                        <input name="cow_id" type="number" placeholder="e.g. 8492" required style={inputStyle} />
+                                        <input type="number" placeholder="e.g. 8492" required style={inputStyle} />
                                     </div>
                                     <div>
                                         <label style={labelStyle}>Yield (Liters)</label>
-                                        <input name="yield_kg" type="number" step="0.1" placeholder="0.0" style={inputStyle} />
+                                        <input type="number" step="0.1" placeholder="0.0" style={inputStyle} />
                                     </div>
                                 </div>
 
                                 <div>
                                     <label style={labelStyle}>Pen / Location</label>
-                                    <select name="pen" style={{ ...inputStyle, background: 'var(--card)' }}>
+                                    <select style={{ ...inputStyle, background: 'var(--card)' }}>
                                         <option value="A1">Pen A1</option>
                                         <option value="A2">Pen A2</option>
                                         <option value="B1">Pen B1</option>
@@ -191,7 +190,7 @@ const DataEntryLog = () => {
 
                                 <div>
                                     <label style={labelStyle}>Health Event (If Any)</label>
-                                    <select name="health_event" style={{ ...inputStyle, background: 'var(--card)' }}>
+                                    <select style={{ ...inputStyle, background: 'var(--card)' }}>
                                         <option value="none">None - Healthy</option>
                                         <option value="lame">Lameness observed</option>
                                         <option value="mastitis">Mastitis symptoms</option>
@@ -202,15 +201,13 @@ const DataEntryLog = () => {
 
                                 <div>
                                     <label style={labelStyle}>Observation Notes</label>
-                                    <textarea name="notes" rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
+                                    <textarea rows="3" placeholder="Any behavioral changes..." style={{ ...inputStyle, resize: 'none' }}></textarea>
                                 </div>
 
-                                {error && <div style={{ color: 'var(--danger)', marginBottom: '16px' }}>{error}</div>}
-
-                                <button type="submit" disabled={loading} style={{
+                                <button type="submit" style={{
                                     width: '100%',
                                     padding: '14px',
-                                    background: loading ? 'var(--mist)' : 'var(--barn)',
+                                    background: 'var(--barn)',
                                     color: 'var(--bg)',
                                     border: 'none',
                                     borderRadius: '8px',
@@ -219,15 +216,15 @@ const DataEntryLog = () => {
                                     fontWeight: 'bold',
                                     letterSpacing: '0.1em',
                                     textTransform: 'uppercase',
-                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    cursor: 'pointer',
                                     transition: 'background 0.2s',
                                     display: 'flex',
                                     justifyContent: 'center',
                                     alignItems: 'center',
-                                    gap: '8px',
+                                    gap: '8px'
                                 }} className="hover-lift">
                                     <i data-lucide="save" style={{ width: '16px', height: '16px' }}></i>
-                                    {loading ? 'Saving…' : 'Save Record'}
+                                    Save Record
                                 </button>
                             </form>
                         )}
@@ -249,7 +246,7 @@ const DataEntryLog = () => {
                             <input
                                 type="file"
                                 accept=".csv"
-                                style={{ display: 'none' }}
+                                style={{ display: 'none' }}ib
                                 ref={fileInputRef}
                                 onChange={handleFileUpload}
                             />
@@ -266,15 +263,16 @@ const DataEntryLog = () => {
                                     fontFamily: 'Cormorant Garamond, serif',
                                     fontSize: '15px',
                                     fontWeight: 'bold',
-                                    cursor: uploading ? 'not-allowed' : 'pointer',
+                                    cursor: 'pointer',
                                     transition: 'all 0.2s',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px',
+                                    position: 'relative'
                                 }}
                                 className="hover-lift"
                             >
-                                <i data-lucide={uploading ? 'loader' : 'file-text'} style={{ width: '16px', height: '16px', animation: uploading ? 'spin 1s linear infinite' : 'none' }}></i>
+                                <i data-lucide={uploading ? "loader" : "file-text"} style={{ width: '16px', height: '16px', animation: uploading ? 'spin 1s linear infinite' : 'none' }}></i>
                                 {uploading ? 'Uploading...' : 'Select CSV File'}
                             </button>
                         </div>
@@ -306,6 +304,10 @@ const DataEntryLog = () => {
                 @keyframes spin {
                     from { transform: rotate(0deg); }
                     to   { transform: rotate(360deg); }
+                }
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </div>
