@@ -40,6 +40,7 @@ const Layout = ({ currentTab, onTabChange, children }) => {
     });
 
     const tabs = [
+        { id: 'home', icon: 'home', label: 'Home' },
         { id: 'feed', icon: 'bell', label: 'Alerts' },
         { id: 'map', icon: 'map', label: 'Herd Map' },
         { id: 'log', icon: 'clipboard-list', label: 'Data Log' },

@@ -2,7 +2,7 @@
 const { useState, useEffect } = React;
 
 const App = () => {
-    const [currentTab, setCurrentTab] = useState('feed');
+    const [currentTab, setCurrentTab] = useState('home');
 
     const renderContent = () => {
         switch (currentTab) {
@@ -13,6 +13,11 @@ const App = () => {
             default: return <MorningAlertFeed />;
         }
     };
+
+    // Homepage renders full-width without the sidebar Layout
+    if (currentTab === 'home') {
+        return <Homepage onNavigate={setCurrentTab} />;
+    }
 
     return (
         <Layout currentTab={currentTab} onTabChange={setCurrentTab}>

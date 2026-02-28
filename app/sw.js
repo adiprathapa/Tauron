@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tauron-v1';
+const CACHE_NAME = 'tauron-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -10,10 +10,12 @@ const ASSETS = [
   '/components/HerdMap.js',
   '/components/DataEntryLog.js',
   '/components/SustainabilityImpact.js',
+  '/components/Homepage.js',
   '/components/Layout.js'
 ];
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
@@ -21,9 +23,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    caches.match(e.request).then((response) => {
-      return response || fetch(e.request);
-    })
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
 
