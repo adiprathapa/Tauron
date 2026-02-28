@@ -26,6 +26,14 @@ torch.manual_seed(42)
 np.random.seed(42)
 random.seed(42)
 
+# External data adapter
+import sys, importlib
+sys.path.insert(0, "data/external")
+try:
+    import adapter as ext_adapter
+except ImportError:
+    ext_adapter = None
+
 
 # ── CLI args ───────────────────────────────────────────────────────────────
 def get_args():
@@ -95,8 +103,21 @@ def main():
         farm_df = tp.generate_farm()
         farm_df.to_csv("data/farm_synthetic.csv", index=False)
 
-    # Build labelled dataset
+    # Build labelled dataset (synthetic)
     dataset = tp.build_dataset(farm_df, n_runs=args.runs)
+
+    # Merge external Cattle-Disease-Prediction data if available
+    ext_dir = Path("data/external")
+    if ext_adapter and ext_dir.exists() and list(ext_dir.glob("*.csv")):
+        print("\n── Loading external cattle disease data ──")
+        ext_df = ext_adapter.load_external_data(ext_dir)
+        ext_graphs = tp.build_external_dataset(ext_df)
+        print(f"Merging {len(ext_graphs)} external + {len(dataset)} synthetic graphs")
+        dataset = dataset + ext_graphs
+        print(f"Combined dataset: {len(dataset)} graphs")
+    else:
+        print("No external data found — using synthetic only")
+
     torch.save(dataset, "data/dataset.pt")
 
     # Train / val split

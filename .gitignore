@@ -210,6 +210,15 @@ __marimo__/
 # Tauron ML outputs (generated — do not commit)
 data/
 
+# Allow external dataset + adapter (Cattle-Disease-Prediction, thyagarajank)
+!data/external/
+!data/external/Training.csv
+!data/external/Testing.csv
+!data/external/adapter.py
+
+# Allow parlor data template
+!data/template_dairy_comp.xlsx
+
 # Allow model weights (475KB, safe for GitHub)
 !models/tauron_model.pt
 !backend/models/tauron_model.pt
