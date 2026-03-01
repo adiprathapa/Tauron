@@ -45,12 +45,7 @@
             text-align: left;
         }
 
-        .reveal h1,
-        .reveal h2,
-        .reveal h3,
-        .reveal h4,
-        .reveal h5,
-        .reveal h6 {
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
             font-family: 'Cormorant Garamond', serif;
             text-transform: none;
             font-weight: 700;
@@ -105,21 +100,10 @@
             flex-shrink: 0;
         }
 
-        .eyebrow.gold {
-            color: var(--straw);
-        }
-
-        .eyebrow.gold::before {
-            background: var(--straw);
-        }
-
-        .eyebrow.center-eye {
-            justify-content: center;
-        }
-
-        .eyebrow.center-eye::before {
-            display: none;
-        }
+        .eyebrow.gold { color: var(--straw); }
+        .eyebrow.gold::before { background: var(--straw); }
+        .eyebrow.center-eye { justify-content: center; }
+        .eyebrow.center-eye::before { display: none; }
 
         .slide-hero {
             font-size: 4em;
@@ -150,24 +134,18 @@
         /* ── Glow Blobs ──────────────────────────────────────────────────────── */
         .glow-a {
             position: absolute;
-            width: 55%;
-            height: 65%;
+            width: 55%; height: 65%;
             background: radial-gradient(ellipse, rgba(106, 158, 72, 0.13) 0%, transparent 65%);
-            top: -15%;
-            right: -10%;
-            pointer-events: none;
-            z-index: -1;
+            top: -15%; right: -10%;
+            pointer-events: none; z-index: -1;
         }
 
         .glow-b {
             position: absolute;
-            width: 40%;
-            height: 55%;
+            width: 40%; height: 55%;
             background: radial-gradient(ellipse, rgba(201, 152, 58, 0.09) 0%, transparent 65%);
-            bottom: -10%;
-            left: -8%;
-            pointer-events: none;
-            z-index: -1;
+            bottom: -10%; left: -8%;
+            pointer-events: none; z-index: -1;
         }
 
         /* ── Cards ───────────────────────────────────────────────────────────── */
@@ -189,23 +167,9 @@
         }
 
         /* ── Grids ───────────────────────────────────────────────────────────── */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 18px;
-        }
-
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 18px;
-        }
-
-        .grid-4 {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 
         /* ── Badges ──────────────────────────────────────────────────────────── */
         .badge {
@@ -265,15 +229,13 @@
         .static-team-card::after {
             content: '';
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             height: 55%;
             background: linear-gradient(to top, rgba(19, 16, 8, 0.95) 0%, transparent 100%);
             z-index: 1;
         }
 
-        .static-team-card>span {
+        .static-team-card > span {
             position: relative;
             z-index: 2;
         }
@@ -296,9 +258,7 @@
             position: relative;
         }
 
-        .pipe-step:last-child {
-            border-right: none;
-        }
+        .pipe-step:last-child { border-right: none; }
 
         .pipe-step.highlighted {
             background: rgba(106, 158, 72, 0.06);
@@ -310,10 +270,8 @@
 
         .pipe-arrow {
             position: absolute;
-            right: -11px;
-            top: 50%;
-            width: 22px;
-            height: 22px;
+            right: -11px; top: 50%;
+            width: 22px; height: 22px;
             background: var(--dark-bg);
             transform: translateY(-50%) rotate(45deg);
             border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -371,16 +329,6 @@
             text-transform: uppercase;
         }
 
-        .stat-detail {
-            font-size: 0.28em;
-            color: var(--mist);
-            opacity: 0.7;
-            margin-top: 10px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            display: block;
-        }
-
         /* ── Tier Columns ────────────────────────────────────────────────────── */
         .tier-col {
             flex: 1;
@@ -430,8 +378,7 @@
 
         ul.tier-list {
             list-style: none;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
         }
 
         ul.tier-list li {
@@ -445,8 +392,7 @@
 
         ul.tier-list li::before {
             content: '—';
-            position: absolute;
-            left: 0;
+            position: absolute; left: 0;
             color: var(--sage);
         }
 
@@ -459,19 +405,10 @@
             border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
         }
 
-        .roi-row:last-child {
-            border-bottom: none;
-        }
+        .roi-row:last-child { border-bottom: none; }
 
-        .roi-label {
-            font-size: 0.62em;
-            color: rgba(242, 237, 228, 0.75);
-        }
-
-        .roi-value {
-            font-size: 0.62em;
-            font-weight: 700;
-        }
+        .roi-label { font-size: 0.62em; color: rgba(242, 237, 228, 0.75); }
+        .roi-value { font-size: 0.62em; font-weight: 700; }
 
         /* ── Alert Bubble ────────────────────────────────────────────────────── */
         .alert-bubble {
@@ -506,9 +443,7 @@
         }
 
         .ask-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
+            list-style: none; margin: 0; padding: 0;
             flex-grow: 1;
         }
 
@@ -517,12 +452,14 @@
             color: rgba(242, 237, 228, 0.75);
             line-height: 1.35;
             margin-bottom: 5px;
-            padding-left: 0;
+            padding-left: 16px;
             position: relative;
         }
 
         .ask-list li::before {
-            content: none;
+            content: '✓';
+            position: absolute; left: 0;
+            color: var(--sage-lt);
         }
 
         .price-badge {
@@ -538,18 +475,18 @@
         .xai-chain {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             margin-top: 14px;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
         }
 
         .xai-node {
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 0.38em;
-            letter-spacing: 0.06em;
+            padding: 6px 12px;
+            font-size: 0.4em;
+            letter-spacing: 0.08em;
             color: rgba(242, 237, 228, 0.7);
             white-space: nowrap;
         }
@@ -594,15 +531,12 @@
         /* ── Hide Reveal default chrome ──────────────────────────────────────── */
         .reveal .progress,
         .reveal .controls,
-        .reveal .slide-number {
-            display: none !important;
-        }
+        .reveal .slide-number { display: none !important; }
 
         /* ── Progress bar ────────────────────────────────────────────────────── */
         .progress-bar {
             position: fixed;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             height: 2px;
             background: linear-gradient(90deg, var(--green), var(--sage));
             transition: width 0.4s ease;
@@ -614,8 +548,7 @@
         /* ── Fullscreen hint (top-left) ──────────────────────────────────────── */
         .hint {
             position: fixed;
-            top: 28px;
-            left: 36px;
+            top: 28px; left: 36px;
             font-family: 'Cormorant Garamond', serif;
             font-size: 9px;
             letter-spacing: 0.12em;
@@ -624,16 +557,12 @@
             cursor: pointer;
             transition: color 0.2s;
         }
-
-        .hint:hover {
-            color: rgba(242, 237, 228, 0.4);
-        }
+        .hint:hover { color: rgba(242, 237, 228, 0.4); }
 
         /* ── Floating pill nav ───────────────────────────────────────────────── */
         .nav {
             position: fixed;
-            bottom: 32px;
-            left: 50%;
+            bottom: 32px; left: 50%;
             transform: translateX(-50%);
             display: flex;
             align-items: center;
@@ -646,57 +575,34 @@
             border-radius: 40px;
             padding: 10px 22px;
         }
-
         .nav-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
+            background: none; border: none; cursor: pointer;
             color: rgba(242, 237, 228, 0.45);
-            font-size: 18px;
-            line-height: 1;
+            font-size: 18px; line-height: 1;
             transition: color 0.2s;
             padding: 2px 6px;
             font-family: 'Cormorant Garamond', serif;
         }
-
-        .nav-btn:hover {
-            color: var(--sage-lt);
-        }
-
-        .nav-dots {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
-
+        .nav-btn:hover { color: var(--sage-lt); }
+        .nav-dots { display: flex; gap: 5px; align-items: center; }
         .nav-dot {
-            width: 5px;
-            height: 5px;
+            width: 5px; height: 5px;
             border-radius: 50%;
             background: rgba(242, 237, 228, 0.18);
             transition: background 0.25s, transform 0.25s;
             cursor: pointer;
         }
-
-        .nav-dot.active {
-            background: var(--sage);
-            transform: scale(1.4);
-        }
-
+        .nav-dot.active { background: var(--sage); transform: scale(1.4); }
         .nav-counter {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 10px;
-            letter-spacing: 0.2em;
+            font-size: 10px; letter-spacing: 0.2em;
             color: rgba(242, 237, 228, 0.35);
-            min-width: 52px;
-            text-align: center;
+            min-width: 52px; text-align: center;
         }
 
         /* ── Hide everything in fullscreen ───────────────────────────────────── */
         body.is-fullscreen .nav,
-        body.is-fullscreen .hint {
-            display: none;
-        }
+        body.is-fullscreen .hint { display: none; }
     </style>
 </head>
 
@@ -723,16 +629,13 @@
                 <div class="glow-a"></div>
                 <div class="glow-b"></div>
 
-                <span
-                    style="font-size: 0.38em; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sage); display: block; margin-bottom: 18px;">
+                <span style="font-size: 0.38em; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sage); display: block; margin-bottom: 18px;">
                     Cornell Digital Ag Hackathon · 2026
                 </span>
 
-                <h1 class="slide-hero" style="color: var(--bg); margin-bottom: 12px;">Tauron<span
-                        style="color: var(--sage); font-style: italic;">.</span></h1>
+                <h1 class="slide-hero" style="color: var(--bg); margin-bottom: 12px;">Tauron<span style="color: var(--sage); font-style: italic;">.</span></h1>
 
-                <p
-                    style="font-size: 0.7em; color: rgba(242,237,228,0.6); max-width: 70%; margin: 0 auto 28px; line-height: 1.45;">
+                <p style="font-size: 0.7em; color: rgba(242,237,228,0.6); max-width: 70%; margin: 0 auto 28px; line-height: 1.45;">
                     Graph Neural Network early warning system for dairy herd disease —<br>
                     <em style="color: rgba(242,237,228,0.45);">accessible AI for family farms.</em>
                 </p>
@@ -741,47 +644,33 @@
                     style="display: flex; justify-content: center; align-items: center; margin-top: 10px;">
                     <div class="static-team-card"
                         style="z-index: 1; transform: rotate(-8deg) translateY(20px); background-image: url('./adi.jpg');">
-                        <span
-                            style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Adi</span>
-                        <span
-                            style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML
-                            Engineer</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Adi</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML Engineer</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 2; transform: rotate(-4deg) translateY(5px); background-image: url('./suchit.jpg');">
-                        <span
-                            style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Suchit</span>
-                        <span
-                            style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Suchit</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 3; transform: rotate(-1deg) translateY(-5px); box-shadow: 0 18px 36px rgba(0,0,0,0.85); background-image: url('./ari.jpg');">
-                        <span
-                            style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Aritro</span>
-                        <span
-                            style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML
-                            Engineer</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Aritro</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">ML Engineer</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 4; transform: rotate(1deg) translateY(-5px); box-shadow: 0 18px 36px rgba(0,0,0,0.85); background-image: url('./krish.jpg');">
-                        <span
-                            style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Krish</span>
-                        <span
-                            style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Krish</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 2; transform: rotate(4deg) translateY(5px); background-image: url('./vik.png');">
-                        <span
-                            style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Vikram</span>
-                        <span
-                            style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Vikram</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Backend</span>
                     </div>
                     <div class="static-team-card"
                         style="z-index: 1; transform: rotate(8deg) translateY(20px); background-image: url('./connor.jpg');">
-                        <span
-                            style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Connor</span>
-                        <span
-                            style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
+                        <span style="display:block; font-size: 0.82em; color: var(--straw-lt); margin-bottom: 2px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">Connor</span>
+                        <span style="display:block; font-family: 'Cormorant Garamond', serif; font-size: 0.46em; color: var(--mist); text-shadow: 0 1px 2px rgba(0,0,0,0.9);">Frontend</span>
                     </div>
                 </div>
             </section>
@@ -792,75 +681,53 @@
             <section data-transition="slide">
                 <span class="eyebrow">The Core Problem</span>
                 <h2 class="slide-h2">The True Cost of Disease</h2>
-
+            
 
                 <div class="grid-3" style="margin-top: 16px; align-items: stretch;">
-                    <div class="dark-card fragment fade-up" data-fragment-index="1"
-                        style="display:flex; flex-direction:column;">
+                    <div class="dark-card fragment fade-up" data-fragment-index="1" style="display:flex; flex-direction:column;">
                         <div style="margin-bottom: 12px;">
-                            <span
-                                style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Mastitis</span>
-                            <span
-                                style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$200–$400</span>
-                            <span
-                                style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per
-                                case</span>
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Mastitis</span>
+                            <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$200–$400</span>
+                            <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
                         </div>
-                        <ul
-                            style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
+                        <ul style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
                             <li>Most costly disease</li>
                             <li>Dumped milk &amp; labor</li>
                             <li>Highly contagious via shared milking equipment</li>
                         </ul>
-                        <div
-                            style="margin-top: 16px; font-size: 0.38em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); white-space: nowrap;">
+                        <div style="margin-top: 16px; font-size: 0.38em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); white-space: nowrap;">
                             48h warning → halve discard duration
                         </div>
                     </div>
 
-                    <div class="dark-card fragment fade-up" data-fragment-index="2"
-                        style="display:flex; flex-direction:column;">
+                    <div class="dark-card fragment fade-up" data-fragment-index="2" style="display:flex; flex-direction:column;">
                         <div style="margin-bottom: 12px;">
-                            <span
-                                style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Bovine
-                                Respiratory Disease <span style="color: var(--mist);"></span></span>
-                            <span
-                                style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$150–$300</span>
-                            <span
-                                style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per
-                                case</span>
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Bovine Respiratory Disease <span style="color: var(--mist);"></span></span>
+                            <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$150–$300</span>
+                            <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
                         </div>
-                        <ul
-                            style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
+                        <ul style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
                             <li>Masked symptoms until damage is done</li>
                             <li>Prolonged treatment risks permanent lung damage</li>
                             <li>Permanent production drops</li>
                         </ul>
-                        <div
-                            style="margin-top: 16px; font-size: 0.38em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); white-space: nowrap;">
+                        <div style="margin-top: 16px; font-size: 0.38em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); white-space: nowrap;">
                             48h warning → stop pen outbreaks
                         </div>
                     </div>
 
-                    <div class="dark-card fragment fade-up" data-fragment-index="3"
-                        style="display:flex; flex-direction:column;">
+                    <div class="dark-card fragment fade-up" data-fragment-index="3" style="display:flex; flex-direction:column;">
                         <div style="margin-bottom: 12px;">
-                            <span
-                                style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Lameness</span>
-                            <span
-                                style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$300–$500</span>
-                            <span
-                                style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per
-                                case</span>
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Lameness</span>
+                            <span style="font-size: 1.3em; font-weight: 700; color: var(--straw-lt); display: block;">$300–$500</span>
+                            <span style="font-size: 0.4em; color: var(--mist); letter-spacing: 0.1em; text-transform: uppercase;">per case</span>
                         </div>
-                        <ul
-                            style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
+                        <ul style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
                             <li>Chronically under-diagnosed by eye</li>
                             <li>Hidden cost through milk loss</li>
                             <li>Reproductive failure &amp; early culling</li>
                         </ul>
-                        <div
-                            style="margin-top: 16px; font-size: 0.38em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); white-space: nowrap;">
+                        <div style="margin-top: 16px; font-size: 0.38em; color: var(--sage-lt); padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); white-space: nowrap;">
                             48h warning → catch before culling
                         </div>
                     </div>
@@ -878,9 +745,7 @@
 
                     <div style="flex: 1.3;" class="fragment fade-right">
                         <div class="dark-card dark-card-highlight" style="height: 100%; box-sizing: border-box;">
-                            <h4
-                                style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 18px; font-weight: 400;">
-                                The ROI Math — 60-Cow Herd</h4>
+                            <h4 style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 18px; font-weight: 400;">The ROI Math — 60-Cow Herd</h4>
 
                             <div class="roi-row">
                                 <span class="roi-label">Savings from early detection</span>
@@ -891,41 +756,31 @@
                                 <span class="roi-value" style="color: var(--sage-lt);">Free &amp; Open Source</span>
                             </div>
 
-                            <div
-                                style="font-size: 0.56em; color: rgba(242,237,228,0.55); line-height: 1.55; margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px;">
+                            <div style="font-size: 0.56em; color: rgba(242,237,228,0.55); line-height: 1.55; margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px;">
                                 <ul style="margin: 0; padding-left: 1.2em; list-style: disc;">
                                     <li>The core argument isn't just financial</li>
-                                    <li><strong style="color:var(--bg);">Structurally impossible</strong> to track 60
-                                        cows' relational health</li>
-                                    <li>Subtle 3-day milk declines + shared feed bunk histories across a 2-acre barn
-                                    </li>
+                                    <li><strong style="color:var(--bg);">Structurally impossible</strong> to track 60 cows' relational health</li>
+                                    <li>Subtle 3-day milk declines + shared feed bunk histories across a 2-acre barn</li>
                                 </ul>
                             </div>
                             <div style="margin-top: auto; text-align: center; padding-top: 80px;">
-                                <span style="font-size: 0.7em; color: var(--sage-lt); font-style: italic;">Tauron does
-                                    what a human simply cannot.</span>
+                                <span style="font-size: 0.7em; color: var(--sage-lt); font-style: italic;">Tauron does what a human simply cannot.</span>
                             </div>
                         </div>
                     </div>
 
                     <div style="flex: 0.85; display:flex; flex-direction:column; gap: 16px;">
                         <div class="dark-card fragment fade-left" style="flex: 1;">
-                            <h4
-                                style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">
-                                Antibiotic Stewardship</h4>
-                            <ul
-                                style="font-size: 0.56em; color: rgba(242,237,228,0.65); line-height: 1.5; margin: 0; padding-left: 1.2em; list-style: disc;">
+                            <h4 style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">Antibiotic Stewardship</h4>
+                            <ul style="font-size: 0.56em; color: rgba(242,237,228,0.65); line-height: 1.5; margin: 0; padding-left: 1.2em; list-style: disc;">
                                 <li>Catch disease early, use fewer antibiotics</li>
                                 <li>Meet regulator standards and earn co-op price premiums</li>
                                 <li>Antimicrobial resistance is a growing industry concern</li>
                             </ul>
                         </div>
                         <div class="dark-card fragment fade-left" style="flex: 1; border-color: rgba(106,158,72,0.25);">
-                            <h4
-                                style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">
-                                Peace of Mind</h4>
-                            <ul
-                                style="font-size: 0.56em; color: rgba(242,237,228,0.65); line-height: 1.5; margin: 0; padding-left: 1.2em; list-style: disc;">
+                            <h4 style="font-size: 0.58em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">Peace of Mind</h4>
+                            <ul style="font-size: 0.56em; color: rgba(242,237,228,0.65); line-height: 1.5; margin: 0; padding-left: 1.2em; list-style: disc;">
                                 <li>Hours of early warning lead time</li>
                                 <li>Decisions driven by explainable AI evidence</li>
                                 <li>Not a black-box risk score no one trusts</li>
@@ -942,7 +797,7 @@
                 <span class="eyebrow" style="justify-content: center;">Live Demo</span>
                 <h2 class="slide-h2" style="text-align: center; margin-bottom: 8px;">Tauron in Action</h2>
                 <p style="font-size: 0.52em; color: rgba(242,237,228,0.45); text-align: center; margin-bottom: 16px;">
-
+                    
                 </p>
 
                 <div style="display: flex; justify-content: center; align-items: center; flex: 1;">
@@ -954,7 +809,7 @@
                 </div>
 
                 <p style="font-size: 0.42em; color: rgba(242,237,228,0.3); text-align: center; margin-top: 12px;">
-
+                   
                 </p>
             </section>
 
@@ -969,57 +824,34 @@
 
                     <!-- Left: Architecture text diagram -->
                     <div style="flex: 1.1;">
-                        <div class="dark-card fragment fade-right" data-fragment-index="1"
-                            style="font-family: 'Cormorant Garamond', serif; font-size: 0.48em; line-height: 1.8; color: rgba(242,237,228,0.65); border-left: 3px solid var(--sage);">
-                            <span style="color: var(--mist); font-style: italic;">// TauronGNN Neural
-                                Architecture</span><br>
-
-                            <div style="margin-bottom: 8px;">
-                                <span style="color: var(--sage-lt); font-weight: 700;">Multi-Sensor Input</span><br>
-                                <span style="color: var(--mist); opacity: 0.8;">Analyzes 7 vital signals over 9
-                                    days</span>
-                            </div>
-
-                            <span style="color: rgba(242,237,228,0.3);">↓</span>
-
-                            <div style="margin-bottom: 8px;">
-                                <span style="color: var(--sage-lt); font-weight: 700;">Temporal Analysis
-                                    (GRU)</span><br>
-                                <span style="color: var(--mist); opacity: 0.8;">Recognizes individual cow health
-                                    trajectories</span>
-                            </div>
-
-                            <span style="color: rgba(242,237,228,0.3);">↓</span>
-
-                            <div style="margin-bottom: 8px;">
-                                <span style="color: var(--sage-lt); font-weight: 700;">Social Graph (GNN)</span><br>
-                                <span style="color: var(--mist); opacity: 0.8;">Tracks risk transmission via pen
-                                    contacts</span>
-                            </div>
-
-                            <span style="color: rgba(242,237,228,0.3);">↓</span>
-
-                            <div style="margin-bottom: 4px;">
-                                <span style="color: var(--straw-lt); font-weight: 700;">Tri-Disease
-                                    Prediction</span><br>
-                                <span style="color: var(--mist); opacity: 0.8;">Mastitis · BRD · Lameness
-                                    Probabilities</span>
-                            </div>
+                        <div class="dark-card fragment fade-right" data-fragment-index="1" style="font-family: 'Cormorant Garamond', serif; font-size: 0.48em; line-height: 2; color: rgba(242,237,228,0.65); border-left: 3px solid var(--sage);">
+                            <span style="color: var(--mist);">// TauronGNN · 120K params · 50 epochs</span><br>
+                            <span style="color: var(--sage-lt);">Input</span>
+                            <span style="color: var(--mist);">     7 features × 9 timesteps / node</span><br>
+                            <span style="color: rgba(242,237,228,0.3);">  ↓</span><br>
+                            <span style="color: var(--sage-lt);">GRU</span>
+                            <span style="color: var(--mist);">      temporal encoder (hidden=64)</span><br>
+                            <span style="color: rgba(242,237,228,0.3);">  ↓</span><br>
+                            <span style="color: var(--sage-lt);">SAGEConv</span>
+                            <span style="color: var(--mist);">  128→64 · ReLU</span><br>
+                            <span style="color: rgba(242,237,228,0.3);">  ↓</span><br>
+                            <span style="color: var(--sage-lt);">SAGEConv</span>
+                            <span style="color: var(--mist);">   64→32 · Dropout 0.3</span><br>
+                            <span style="color: rgba(242,237,228,0.3);">  ↓</span><br>
+                            <span style="color: var(--straw-lt);">Sigmoid</span>
+                            <span style="color: var(--mist);">   mastitis · BRD · lameness</span>
                         </div>
 
                         <div class="xai-chain fragment fade-up" data-fragment-index="3">
-                            <div
-                                style="font-size: 0.3em; color: var(--mist); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; width: 100%;">
-                                Interpretation Pipeline</div>
-                            <div class="xai-node active">Gradients</div>
+                            <div class="xai-node active">Gradient XAI</div>
                             <span class="xai-arrow">→</span>
-                            <div class="xai-node active">Signal</div>
+                            <div class="xai-node active">feature_mask</div>
                             <span class="xai-arrow">+</span>
-                            <div class="xai-node active">Contact</div>
+                            <div class="xai-node active">edge_mask</div>
                             <span class="xai-arrow">→</span>
-                            <div class="xai-node">LLM</div>
+                            <div class="xai-node">Ollama Mistral</div>
                             <span class="xai-arrow">→</span>
-                            <div class="xai-node">Alert</div>
+                            <div class="xai-node">Plain alert</div>
                         </div>
                     </div>
 
@@ -1028,30 +860,26 @@
                         <div class="grid-2 fragment fade-left" data-fragment-index="2" style="gap: 12px;">
                             <div class="stat-card">
                                 <span class="stat-number">120K</span>
-                                <span class="stat-label">Model Parameters</span>
+                                <span class="stat-label">Parameters</span>
                             </div>
                             <div class="stat-card">
                                 <span class="stat-number">475KB</span>
-                                <span class="stat-label">Model Weight</span>
-
+                                <span class="stat-label">Model weights</span>
                             </div>
                             <div class="stat-card">
                                 <span class="stat-number">&lt;2s</span>
-                                <span class="stat-label">Edge Inference</span>
-                                <span class="stat-detail">Local Processing</span>
+                                <span class="stat-label">Inference time</span>
                             </div>
                             <div class="stat-card">
                                 <span class="stat-number">47/47</span>
-                                <span class="stat-label">Tests Passing</span>
-                                <span class="stat-detail">Inference · API · Ingest</span>
+                                <span class="stat-label">Tests passing</span>
                             </div>
                         </div>
 
-                        <div class="dark-card dark-card-highlight fragment fade-up" data-fragment-index="4"
-                            style="margin-top: 4px;">
+                        <div class="dark-card dark-card-highlight fragment fade-up" data-fragment-index="4" style="margin-top: 4px;">
                             <p style="font-size: 0.52em; color: rgba(242,237,228,0.8); line-height: 1.5; margin: 0;">
                                 <strong style="color: var(--sage-lt);">Data sovereign by design.</strong><br>
-                               Mistral-7B runs in an encrypted silo. No cow health data is shared, stored, or used for training.
+                                Private Cloud Mistral-7B runs in an encrypted silo. No cow health data is shared, stored, or used for training.
                             </p>
                         </div>
                     </div>
@@ -1064,8 +892,7 @@
             <section data-transition="convex">
                 <span class="eyebrow">Data Strategy</span>
                 <h2 class="slide-h2">Meets Farmers Where They Are</h2>
-                <p class="lede" style="margin-bottom: 0.4em;">No new hardware required to start. A weekly CSV export of
-                    existing parlor records is enough. Accuracy grows as data grows.</p>
+                <p class="lede" style="margin-bottom: 0.4em;">No new hardware required to start. A weekly CSV export of existing parlor records is enough. Accuracy grows as data grows.</p>
 
                 <div style="display: flex; gap: 12px; margin-top: 0.3em; align-items: stretch; flex: 1;">
 
@@ -1073,11 +900,9 @@
                     <div class="tier-col dark-card dark-card-highlight fragment fade-up" data-fragment-index="1">
                         <div class="tier-header">
                             <span class="tier-num" style="color: var(--sage-lt);">Tier 1</span>
-                            <span class="tier-accuracy" style="color: var(--sage-lt);">~75% AUROC</span>
+                            <span class="tier-accuracy" style="color: var(--sage-lt);">~51% AUROC</span>
                             <span class="you-are-here">You are here</span>
-                            <div
-                                style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.5); font-weight: 400;">
-                                Manual Records</div>
+                            <div style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.5); font-weight: 400;">Manual Records</div>
                         </div>
                         <div class="tier-body">
                             <ul class="tier-list">
@@ -1090,18 +915,14 @@
                     </div>
 
                     <!-- Arrow -->
-                    <div class="fragment fade-left" data-fragment-index="2"
-                        style="display: flex; align-items: center; color: var(--straw); font-size: 0.7em; flex-shrink: 0;">
-                        →</div>
+                    <div class="fragment fade-left" data-fragment-index="2" style="display: flex; align-items: center; color: var(--straw); font-size: 0.7em; flex-shrink: 0;">→</div>
 
                     <!-- Tier 2 -->
                     <div class="tier-col dark-card fragment fade-up" data-fragment-index="2">
                         <div class="tier-header">
                             <span class="tier-num" style="color: var(--straw-lt);">Tier 2</span>
-                            <span class="tier-accuracy" style="color: var(--straw-lt);">~76% AUROC</span>
-                            <div
-                                style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.5); font-weight: 400;">
-                                Automated Milking</div>
+                            <span class="tier-accuracy" style="color: var(--straw-lt);">~74% AUROC</span>
+                            <div style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.5); font-weight: 400;">Automated Milking</div>
                         </div>
                         <div class="tier-body">
                             <ul class="tier-list">
@@ -1114,18 +935,14 @@
                     </div>
 
                     <!-- Arrow -->
-                    <div class="fragment fade-left" data-fragment-index="3"
-                        style="display: flex; align-items: center; color: var(--straw); font-size: 0.7em; flex-shrink: 0;">
-                        →</div>
+                    <div class="fragment fade-left" data-fragment-index="3" style="display: flex; align-items: center; color: var(--straw); font-size: 0.7em; flex-shrink: 0;">→</div>
 
                     <!-- Tier 3 -->
                     <div class="tier-col dark-card fragment fade-up" data-fragment-index="3">
                         <div class="tier-header">
                             <span class="tier-num" style="color: var(--bg);">Tier 3</span>
-                            <span class="tier-accuracy" style="color: var(--bg);">~98% AUROC</span>
-                            <div
-                                style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.45); font-weight: 400;">
-                                Full Sensor Suite</div>
+                            <span class="tier-accuracy" style="color: var(--bg);">~89% AUROC</span>
+                            <div style="margin-top: 10px; font-size: 0.5em; color: rgba(242,237,228,0.45); font-weight: 400;">Full Sensor Suite</div>
                         </div>
                         <div class="tier-body">
                             <ul class="tier-list">
@@ -1139,8 +956,7 @@
                 </div>
 
                 <p style="font-size: 0.48em; color: var(--mist); margin-top: 0.5em; font-style: italic;">
-                    Accuracy improves as farmers add data sources — creating a natural upsell path without forcing
-                    hardware spend upfront.
+                    Accuracy improves as farmers add data sources — creating a natural upsell path without forcing hardware spend upfront.
                 </p>
             </section>
 
@@ -1148,8 +964,7 @@
                  SLIDE 7 — The Ask
             ══════════════════════════════════════════════════════════════════ -->
             <section data-transition="zoom">
-                <div class="glow-a"
-                    style="background: radial-gradient(ellipse, rgba(201,152,58,0.12) 0%, transparent 65%);"></div>
+                <div class="glow-a" style="background: radial-gradient(ellipse, rgba(201,152,58,0.12) 0%, transparent 65%);"></div>
                 <div class="glow-b"></div>
 
                 <span class="eyebrow gold">Closing</span>
@@ -1158,61 +973,47 @@
                     Built in 36 hours at Cornell. Ready to pilot on real farms this spring.
                 </p>
 
-                <div style="display: flex; gap: 12px; align-items: stretch; flex: 1;">
+                <div class="grid-3" style="margin-top: 16px; align-items: stretch;">
 
                     <!-- What We Built -->
-                    <div class="ask-card dark-card fragment fade-up" data-fragment-index="1">
-                        <span class="ask-icon" style="color: var(--sage);">What We Built</span>
-                        <div class="ask-title">End-to-End System</div>
-                        <ul class="ask-list">
-                            <li>48-hour disease warning from records you already keep</li>
-                            <li>GNN flags transmission paths — not just sick cows</li>
-                            <li>Explainable alerts: cow, feature, pen-mate chain</li>
-                            <li>Plain-English farmer text via on-device LLM</li>
-                            <li>Live 60-cow herd demo, React + D3 map</li>
-                            <li>Tier 1 AUROC 75% — no sensors required</li>
-                        </ul>
-                        <div class="price-badge" style="color: var(--sage-lt);">
-                            Built in 36 hours · 47/47 tests passing
+                    <div class="dark-card fragment fade-up" data-fragment-index="1" style="display:flex; flex-direction:column;">
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sage-lt); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">What We Built</span>
+                            <span style="font-size: 1.1em; font-weight: 700; color: var(--fg); display: block;">End-to-End System</span>
                         </div>
+                        <ul style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
+                            <li>48h warning from records you already keep</li>
+                            <li>GNN flags transmission paths, not just sick cows</li>
+                            <li>XAI alerts with plain-English farmer text</li>
+                            <li>Live 60-cow demo, React + D3 map</li>
+                        </ul>
                     </div>
 
                     <!-- What's Next -->
-                    <div class="ask-card dark-card dark-card-highlight fragment fade-up" data-fragment-index="2">
-                        <span class="ask-icon" style="color: var(--straw);">What's Next</span>
-                        <div class="ask-title">Path to Market</div>
-                        <ul class="ask-list">
-                            <li>Cornell CARE Lab pilot partnership</li>
-                            <li>3-farm beta program (spring 2026)</li>
-                            <li>Real labeled disease event data</li>
-                            <li>Ollama on-prem deployment</li>
-                            <li>AMS &amp; parlor API integrations</li>
-                            <li>AMR compliance reporting dashboard</li>
-                        </ul>
-                        <div class="price-badge" style="color: var(--straw-lt);">
-                            Cornell Ag Extension connection needed
+                    <div class="dark-card dark-card-highlight fragment fade-up" data-fragment-index="2" style="display:flex; flex-direction:column;">
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--straw-lt); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">What's Next</span>
+                            <span style="font-size: 1.1em; font-weight: 700; color: var(--fg); display: block;">Production Path</span>
                         </div>
+                        <ul style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
+                            <li>Docker + SageMaker retraining pipeline</li>
+                            <li>AWS Neuron on Inferentia for edge inference</li>
+                            <li>SageMaker Model Monitor for drift detection</li>
+                            <li>AMS, parlor API + AMR compliance dashboard</li>
+                        </ul>
                     </div>
 
-                    <!-- Pricing -->
-                    <div class="ask-card dark-card dark-card-gold fragment fade-up" data-fragment-index="3">
-                        <span class="ask-icon" style="color: var(--straw);">Revenue Model</span>
-                        <div class="ask-title">Open Source + SaaS</div>
-                        <ul class="ask-list" style="margin-bottom: 8px;">
+                    <!-- Revenue Model -->
+                    <div class="dark-card dark-card-gold fragment fade-up" data-fragment-index="3" style="display:flex; flex-direction:column;">
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.38em; letter-spacing: 0.14em; text-transform: uppercase; color: var(--straw-lt); display: block; margin-bottom: 6px; font-family: 'Cormorant Garamond', serif;">Revenue Model</span>
+                            <span style="font-size: 1.1em; font-weight: 700; color: var(--fg); display: block;">Open Source + SaaS</span>
+                        </div>
+                        <ul style="font-size: 0.42em; color: rgba(242,237,228,0.55); flex-grow:1; margin: 0; line-height: 1.5; padding-left: 1.2em; list-style: disc;">
                             <li>≤60 cows: <strong style="color: var(--sage-lt);">Free &amp; open source</strong></li>
-                            <li>61–500 cows: $149/mo — managed hosting + integrations</li>
-                            <li>500+ cows: Enterprise — custom deployment</li>
+                            <li>61–500 cows: $149/mo, managed hosting + integrations</li>
+                            <li>500+ cows: Enterprise, custom deployment</li>
                         </ul>
-                        <div
-                            style="margin-top: 0.4em; padding: 0.4em 0.55em; background: rgba(201,152,58,0.08); border-radius: 4px; border: 1px solid rgba(201,152,58,0.2);">
-                            <p style="font-size: 0.5em; color: rgba(242,237,228,0.75); line-height: 1.4; margin: 0;">
-                                Family farms get full access at <strong style="color: var(--sage-lt);">zero
-                                    cost.</strong> Larger operations fund continued development.
-                            </p>
-                        </div>
-                        <div class="price-badge">
-                            Looking for 3 pilot farms + advisor
-                        </div>
                     </div>
 
                 </div>
@@ -1224,8 +1025,7 @@
                 <div class="glow-b"></div>
 
                 <div style="display: flex; align-items: center; justify-content: center; height: 70vh;">
-                    <h1 class="slide-hero" style="color: var(--bg); margin: 0;">Questions<span
-                            style="color: var(--sage); font-style: italic;">.</span></h1>
+                    <h1 class="slide-hero" style="color: var(--bg); margin: 0;">Questions<span style="color: var(--sage); font-style: italic;">.</span></h1>
                 </div>
             </section>
 
@@ -1287,7 +1087,7 @@
             });
             document.getElementById('hint').addEventListener('click', () => {
                 if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(() => { });
+                    document.documentElement.requestFullscreen().catch(() => {});
                 } else {
                     document.exitFullscreen();
                 }
