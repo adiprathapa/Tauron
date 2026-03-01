@@ -771,47 +771,26 @@
             </section>
 
             <!-- ══════════════════════════════════════════════════════════════════
-                 SLIDE 4 — Architecture: How Tauron Works
+                 SLIDE 4 — Live Product Demo
             ══════════════════════════════════════════════════════════════════ -->
-            <section data-transition="slide">
-                <span class="eyebrow">Architecture</span>
-                <h2 class="slide-h2">How Tauron Works</h2>
+            <section class="center-slide" data-transition="zoom" style="text-align: center;">
+                <span class="eyebrow" style="justify-content: center;">Live Demo</span>
+                <h2 class="slide-h2" style="text-align: center; margin-bottom: 8px;">Tauron in Action</h2>
+                <p style="font-size: 0.52em; color: rgba(242,237,228,0.45); text-align: center; margin-bottom: 16px;">
+                    60-cow herd · morning alert workflow · CSV ingest to actionable intelligence
+                </p>
 
-                <div class="pipeline-wrap">
-                    <div class="pipe-step fragment fade-right" data-fragment-index="1">
-                        <div class="pipe-arrow"></div>
-                        <span class="pipe-label">Step 1</span>
-                        <span class="pipe-title">Ingestion</span>
-                        <p class="pipe-body">CSV upload, voice entry, or REST API. Standardized sensor streams per cow.</p>
-                    </div>
-                    <div class="pipe-step fragment fade-right" data-fragment-index="2">
-                        <div class="pipe-arrow"></div>
-                        <span class="pipe-label">Step 2</span>
-                        <span class="pipe-title">Graph Build</span>
-                        <p class="pipe-body">Pen assignments + feeding logs → PyG contact graph. Edges encode disease transmission probability.</p>
-                    </div>
-                    <div class="pipe-step highlighted fragment fade-right" data-fragment-index="3">
-                        <div class="pipe-arrow"></div>
-                        <span class="pipe-label" style="color: var(--sage);">Step 3</span>
-                        <span class="pipe-title" style="color: var(--sage-lt);">GNN Inference</span>
-                        <p class="pipe-body">GraphSAGE + GRU over 7-day windows. Outputs mastitis / BRD / lameness risk per node.</p>
-                    </div>
-                    <div class="pipe-step gold-step fragment fade-right" data-fragment-index="4">
-                        <span class="pipe-label" style="color: var(--straw);">Step 4</span>
-                        <span class="pipe-title" style="color: var(--straw-lt);">LLM Alert</span>
-                        <p class="pipe-body">Gradient XAI extracts evidence. Ollama → Claude → template generates farmer-readable directive.</p>
-                    </div>
+                <div style="display: flex; justify-content: center; align-items: center; flex: 1;">
+                    <video controls playsinline
+                        style="width: 88%; max-height: 68vh; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 20px 60px rgba(0,0,0,0.6);"
+                        src="./demo.mp4">
+                        Your browser does not support video playback.
+                    </video>
                 </div>
 
-                <div class="fragment fade-up" style="display: flex; gap: 22px; margin-top: 18px; align-items: stretch;">
-                    <div style="flex: 1; font-size: 0.6em; color: rgba(242,237,228,0.8); line-height: 1.45;">
-                        <strong>No proximity sensors needed.</strong> The pipeline synthesizes everyday barn layout and feeding logs to infer contact networks without expensive hardware.
-                    </div>
-                    <div style="flex: 1; padding: 14px 16px; border-left: 3px solid var(--straw); background: rgba(201,152,58,0.05); font-size: 0.6em; color: rgba(242,237,228,0.8); line-height: 1.45; border-radius: 0 4px 4px 0;">
-                        <strong style="color: var(--straw-lt); display: block; margin-bottom: 5px;">The Key Innovation</strong>
-                        When Cow A's health degrades, her neighbors' risk scores update through message passing — even if they look fine right now.
-                    </div>
-                </div>
+                <p style="font-size: 0.42em; color: rgba(242,237,228,0.3); text-align: center; margin-top: 12px;">
+                    Narrated walkthrough: Herd Map → Alert Feed → Cow Detail → Data Entry → CSV Upload
+                </p>
             </section>
 
             <!-- ══════════════════════════════════════════════════════════════════
@@ -889,58 +868,7 @@
             </section>
 
             <!-- ══════════════════════════════════════════════════════════════════
-                 SLIDE 6 — XAI & UX: 4:30 in a Barn
-            ══════════════════════════════════════════════════════════════════ -->
-            <section data-transition="slide">
-                <span class="eyebrow">Trust &amp; Action</span>
-                <h2 class="slide-h2">4:30am in a Barn</h2>
-                <p class="lede" style="margin-bottom: 16px;">We don't show farmers neural networks. We show them the specific evidence and a clear action.</p>
-
-                <div style="display:flex; gap: 20px; align-items: stretch;">
-
-                    <div style="flex: 1.1; display:flex; flex-direction:column;" class="fragment fade-right">
-                        <h4 style="font-size: 0.52em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">Extracting the "Why"</h4>
-                        <div class="dark-card" style="flex-grow:1; border-left: 3px solid var(--sage-lt); display: flex; flex-direction: column; justify-content: center;">
-                            <p style="font-size: 0.56em; color: rgba(242,237,228,0.85); margin: 0 0 12px; line-height: 1.4;">
-                                Our explainer pipeline digs into the GNN to surface the exact evidence triggering an alert:
-                            </p>
-                            <ul style="font-size: 0.52em; color: var(--sage-lt); padding-left: 16px; line-height:1.45; margin:0;">
-                                <li style="margin-bottom: 8px;"><strong style="color:var(--straw-lt);">Primary catalyst:</strong> sharp anomaly in a specific sensor — e.g., milk yield dropping 18% over 3 days.</li>
-                                <li><strong style="color:var(--straw-lt);">Hidden transmission path:</strong> high-weight contact edge to a sick cow — e.g., sharing feed bunk with #31, treated Tuesday.</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div style="display:flex; align-items:center; justify-content:center; padding: 0 4px;" class="fragment zoom-in">
-                        <span style="font-size: 0.7em; color: var(--straw);">→</span>
-                    </div>
-
-                    <div style="flex: 1.3; display:flex; flex-direction:column;" class="fragment fade-left">
-                        <h4 style="font-size: 0.52em; color: var(--mist); text-transform:uppercase; letter-spacing:0.1em; margin-bottom: 10px; font-weight: 400;">What the Farmer Reads</h4>
-                        <div class="alert-bubble" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                            <div style="display:flex; justify-content:space-between; margin-bottom: 10px; padding-bottom: 8px; border-bottom:1px solid rgba(255,255,255,0.08);">
-                                <span style="font-size: 0.44em; font-family: 'Cormorant Garamond', serif; color: rgba(242,237,228,0.4);">tauron · morning report</span>
-                                <div style="display: flex; gap: 10px;">
-                                    <span style="font-size:0.44em; color: var(--sage-lt);">53 OK</span>
-                                    <span style="font-size:0.44em; color: var(--straw-lt);">5 Watch</span>
-                                    <span style="font-size:0.44em; color: var(--danger);">2 Act Now</span>
-                                </div>
-                            </div>
-                            <p style="font-size: 0.58em; line-height: 1.5; margin: 0; color: var(--bg);">
-                                "Cow #47 is at high risk for mastitis. Her milk yield dropped 18% and she shared a feed bunk with Cow #31, who was treated Tuesday.
-                                <strong style="color: var(--straw-lt);">Isolate and check temperature.</strong>"
-                            </p>
-                            <p style="font-size: 0.4em; margin-top: 10px; color: rgba(242,237,228,0.4); font-family: 'Cormorant Garamond', serif;">
-                                Ollama Mistral-7B · local inference · data sovereign
-                            </p>
-                        </div>
-                    </div>
-
-                </div>
-            </section>
-
-            <!-- ══════════════════════════════════════════════════════════════════
-                 SLIDE 7 — Data Tier Roadmap
+                 SLIDE 6 — Data Tier Roadmap
             ══════════════════════════════════════════════════════════════════ -->
             <section data-transition="convex">
                 <span class="eyebrow">Data Strategy</span>
@@ -1014,39 +942,7 @@
             </section>
 
             <!-- ══════════════════════════════════════════════════════════════════
-                 SLIDE 8 — Zero to First Alert (Onboarding)
-            ══════════════════════════════════════════════════════════════════ -->
-            <section data-transition="zoom" style="text-align: center;">
-                <span class="eyebrow center-eye">Getting Started</span>
-                <h2 class="slide-h2" style="text-align: center; margin-bottom: 12px;">Zero to First Alert</h2>
-                <p style="font-size: 0.56em; color: rgba(242,237,228,0.5); text-align: center; margin-bottom: 28px;">No installation. No hardware. Open a URL — get actionable intelligence.</p>
-
-                <div style="display: flex; gap: 16px; margin-top: 8px;">
-                    <div class="step-card fragment fade-up" data-fragment-index="1">
-                        <span class="step-num" style="color: var(--sage-lt);">1</span>
-                        <h4 style="font-size: 0.75em; color: var(--mist); margin-bottom: 10px; font-weight: 400;">Open URL</h4>
-                        <p style="font-size: 0.54em; color:rgba(242,237,228,0.65); margin:0; line-height:1.45;">PWA runs instantly on any phone, tablet, or desktop. No install required.</p>
-                    </div>
-                    <div class="step-card fragment fade-up" data-fragment-index="2">
-                        <span class="step-num" style="color: var(--sage-lt);">2</span>
-                        <h4 style="font-size: 0.75em; color: var(--mist); margin-bottom: 10px; font-weight: 400;">Register Herd</h4>
-                        <p style="font-size: 0.54em; color:rgba(242,237,228,0.65); margin:0; line-height:1.45;">Map cow IDs to pen assignments. Securely upload existing parlor records.</p>
-                    </div>
-                    <div class="step-card fragment fade-up" data-fragment-index="3">
-                        <span class="step-num" style="color: var(--sage-lt);">3</span>
-                        <h4 style="font-size: 0.75em; color: var(--mist); margin-bottom: 10px; font-weight: 400;">Weekly Upload</h4>
-                        <p style="font-size: 0.54em; color:rgba(242,237,228,0.65); margin:0; line-height:1.45;">Drag &amp; drop your routine parlor CSV export or speak observations aloud.</p>
-                    </div>
-                    <div class="step-card highlighted fragment fade-up" data-fragment-index="4">
-                        <span class="step-num" style="color: var(--straw-lt);">4</span>
-                        <h4 style="font-size: 0.75em; color: var(--straw-lt); margin-bottom: 10px; font-weight: 400;">First Alert</h4>
-                        <p style="font-size: 0.54em; color:rgba(242,237,228,0.8); margin:0; line-height:1.45;">The GNN identifies at-risk cows before visible symptoms — proving value on day one.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ══════════════════════════════════════════════════════════════════
-                 SLIDE 9 — The Ask
+                 SLIDE 7 — The Ask
             ══════════════════════════════════════════════════════════════════ -->
             <section data-transition="zoom">
                 <div class="glow-a" style="background: radial-gradient(ellipse, rgba(201,152,58,0.12) 0%, transparent 65%);"></div>
