@@ -4,6 +4,8 @@
 
 Cornell Digital Ag Hackathon · February 27 – March 1, 2026
 
+🎥 [Watch the demo](TauronDemo.mp4) · 🌐 [Live site](https://adiprathapa.github.io/Tauron/)
+
 ## Collaborators
 
 - Aritro Ganguly
@@ -12,6 +14,7 @@ Cornell Digital Ag Hackathon · February 27 – March 1, 2026
 - Krish Jana
 - Vikram Davey
 - Suchit Basineni
+
 ---
 
 ## Architecture
@@ -107,6 +110,12 @@ python3 app/server.py
 python train.py --epochs 100 --runs 12
 # Best checkpoint: models/tauron_model.pt (AUROC ~0.995)
 ```
+
+## Voice Data Ingestion
+
+Farmers can log herd observations by voice — no forms, no installs:
+
+```
 Farmer speaks into phone/laptop mic
         ↓
   Web Speech API (browser-native, no install)
@@ -130,4 +139,4 @@ Farmer speaks into phone/laptop mic
   Save → POST /api/ingest (one row per cow)
         ↓
   _ingest_log  →  ML pipeline baseline updated
-
+```
