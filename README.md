@@ -4,7 +4,7 @@
 
 Cornell Digital Ag Hackathon · February 27 – March 1, 2026
 
-🎥 [Watch the demo](TauronDemo.mp4) · 🌐 [Live site](https://adiprathapa.github.io/Tauron/)
+[Watch the demo](TauronDemo.mp4) · [Live site](https://adiprathapa.github.io/Tauron/)
 
 ## Collaborators
 
